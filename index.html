@@ -42,6 +42,8 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  [hidden] { display: none !important; }
+
   html, body { height: 100%; }
 
   body {
@@ -200,7 +202,7 @@
     overflow-x: auto;
   }
 
-  .today-ribbon.all-clear { background: var(--ink); }
+  .today-ribbon[hidden] { display: none; }
 
   .today-count {
     font-family: var(--font-display);
@@ -404,13 +406,14 @@
     background: var(--surface);
     box-shadow: var(--shadow-lift);
     transform: translateX(100%);
-    transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+    visibility: hidden;
+    transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s 0.25s;
     z-index: 60;
     display: flex;
     flex-direction: column;
   }
 
-  .panel.open { transform: translateX(0); }
+  .panel.open { transform: translateX(0); visibility: visible; transition-delay: 0s; }
 
   .panel-head {
     display: flex;
