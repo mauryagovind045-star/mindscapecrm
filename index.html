@@ -1153,9 +1153,11 @@
     }
   });
 
-  // one-time upgrade: carry over any leads created in the old generic version
+  // one-time upgrade: carry over leads from the old generic version — but only
+  // when sync is off (with sync on, the repo already holds the migrated data
+  // and re-importing local v1 leads would duplicate every one of them)
   const v1local = loadJSON("mindscape-crm-v1", null);
-  if (Array.isArray(v1local) && v1local.length && leads.length === 0) {
+  if (!syncCfg && Array.isArray(v1local) && v1local.length && leads.length === 0) {
     leads = v1local.map(v2ify);
     persistLocal();
   }
