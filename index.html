@@ -4,7 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mindscape CRM</title>
+<meta name="theme-color" content="#221b41">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mindscape">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -97,6 +104,28 @@
     font-size: 11px;
     color: var(--muted);
     letter-spacing: 0.04em;
+  }
+
+  .view-toggle {
+    display: inline-flex;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .view-toggle button {
+    padding: 5px 14px;
+    border-radius: 7px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .view-toggle button.active {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow);
   }
 
   .search-wrap { position: relative; }
@@ -322,6 +351,109 @@
     text-align: center;
   }
 
+  /* ---------- Stats ---------- */
+  .stats {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 24px 24px;
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+
+  .tile .tile-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .tile .tile-value {
+    font-family: var(--font-mono);
+    font-size: 24px;
+    font-weight: 600;
+    margin-top: 2px;
+    letter-spacing: -0.01em;
+  }
+
+  .tile.alert .tile-value { color: var(--overdue); }
+
+  .charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 14px;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+
+  .chart-card h2 {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: minmax(84px, auto) 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 5px 0;
+  }
+
+  .bar-row .bar-label {
+    font-size: 13px;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+
+  .bar-row .bar-label .swatch {
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .bar-track {
+    height: 12px;
+    background: var(--bg);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--iris);
+    border-radius: 0 4px 4px 0;
+    min-width: 2px;
+  }
+
+  .bar-row .bar-value {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink);
+    text-align: right;
+  }
+
+  .chart-empty { font-size: 13px; color: var(--muted); padding: 6px 0; }
+
   /* ---------- Cards ---------- */
   .card {
     background: var(--surface);
@@ -383,6 +515,22 @@
 
   .followup.overdue { background: var(--overdue-soft); color: var(--overdue); font-weight: 600; }
   .followup.due-today { background: var(--today-soft); color: var(--today); font-weight: 600; }
+
+  .req-preview {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 7px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .btn-cal {
+    width: 100%;
+    justify-content: center;
+    margin: -4px 0 13px;
+    font-size: 13px;
+  }
 
   /* ---------- Slide-over panel ---------- */
   .overlay {
@@ -656,6 +804,10 @@
     <h1>Mindscape<span class="dot">.</span></h1>
     <span class="tagline">personal CRM</span>
   </div>
+  <div class="view-toggle" role="tablist" aria-label="View">
+    <button id="view-board" class="active" role="tab" aria-selected="true">Board</button>
+    <button id="view-stats" role="tab" aria-selected="false">Stats</button>
+  </div>
   <div class="search-wrap">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
     <input id="search" type="search" placeholder="Search name or company" aria-label="Search leads">
@@ -687,6 +839,20 @@
 </div>
 
 <main class="board" id="board" aria-label="Lead pipeline"></main>
+
+<main class="stats" id="stats" hidden aria-label="Pipeline statistics">
+  <div class="tiles" id="stat-tiles"></div>
+  <div class="charts">
+    <section class="chart-card">
+      <h2>Pipeline value by stage</h2>
+      <div id="chart-stages"></div>
+    </section>
+    <section class="chart-card">
+      <h2>Leads by source</h2>
+      <div id="chart-sources"></div>
+    </section>
+  </div>
+</main>
 
 <footer class="foot">Mindscape · your leads never leave this browser · use Data → Export for backups</footer>
 
@@ -739,6 +905,11 @@
           <label for="f-followup">Next follow-up</label>
           <input id="f-followup" type="date">
         </div>
+      </div>
+      <button type="button" class="btn btn-cal" id="add-to-calendar" hidden>📅 Add follow-up to Google Calendar</button>
+      <div class="field">
+        <label for="f-req">Client requirements</label>
+        <textarea id="f-req" rows="3" placeholder="What they need — specs, budget, timeline, preferences…"></textarea>
       </div>
     </form>
 
@@ -889,6 +1060,77 @@
     renderBoard();
     renderRibbon();
     renderSourceFilter();
+    if (!$("stats").hidden) renderStats();
+  }
+
+  /* ---------- Stats ---------- */
+
+  function monthStart() {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  }
+
+  function barList(container, rows, fmt) {
+    if (!rows.length) {
+      container.innerHTML = `<div class="chart-empty">Nothing to show yet.</div>`;
+      return;
+    }
+    const max = Math.max(...rows.map((r) => r.amount));
+    container.innerHTML = rows.map((r) => `
+      <div class="bar-row" title="${esc(r.label)}: ${esc(fmt(r.amount))}">
+        <span class="bar-label">${r.swatch ? `<span class="swatch" style="background:${r.swatch}"></span>` : ""}${esc(r.label)}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${max ? Math.round((r.amount / max) * 100) : 0}%"></div></div>
+        <span class="bar-value">${esc(fmt(r.amount))}</span>
+      </div>`).join("");
+  }
+
+  function renderStats() {
+    const open = leads.filter((l) => OPEN_STAGES.includes(l.stage));
+    const openValue = open.reduce((s, l) => s + (Number(l.value) || 0), 0);
+    const wonMonth = leads
+      .filter((l) => l.stage === "won" && (l.wonAt || l.updatedAt || 0) >= monthStart())
+      .reduce((s, l) => s + (Number(l.value) || 0), 0);
+    const overdue = leads.filter((l) => dueState(l) === "overdue").length;
+
+    const tiles = [
+      { label: "Open pipeline", value: openValue ? money(openValue) : "₹0" },
+      { label: "Open leads", value: String(open.length) },
+      { label: "Won this month", value: wonMonth ? money(wonMonth) : "₹0" },
+      { label: "Overdue follow-ups", value: String(overdue), alert: overdue > 0 },
+    ];
+    $("stat-tiles").innerHTML = tiles.map((t) => `
+      <div class="tile${t.alert ? " alert" : ""}">
+        <div class="tile-label">${t.label}</div>
+        <div class="tile-value">${t.value}</div>
+      </div>`).join("");
+
+    const stageRows = STAGES.map((s) => ({
+      label: s.label,
+      swatch: s.color,
+      amount: leads.filter((l) => l.stage === s.id).reduce((sum, l) => sum + (Number(l.value) || 0), 0),
+    })).filter((r) => r.amount > 0);
+    barList($("chart-stages"), stageRows, money);
+
+    const bySource = {};
+    for (const l of leads) {
+      const key = l.source || "No source";
+      bySource[key] = (bySource[key] || 0) + 1;
+    }
+    const sourceRows = Object.entries(bySource)
+      .map(([label, amount]) => ({ label, amount }))
+      .sort((a, b) => b.amount - a.amount);
+    barList($("chart-sources"), sourceRows, (n) => `${n} lead${n === 1 ? "" : "s"}`);
+  }
+
+  function setView(view) {
+    const board = view === "board";
+    $("board").hidden = !board;
+    $("stats").hidden = board;
+    $("view-board").classList.toggle("active", board);
+    $("view-stats").classList.toggle("active", !board);
+    $("view-board").setAttribute("aria-selected", board);
+    $("view-stats").setAttribute("aria-selected", !board);
+    if (!board) renderStats();
   }
 
   function renderBoard() {
@@ -939,6 +1181,7 @@
         if (lead && lead.stage !== stage.id) {
           lead.stage = stage.id;
           lead.updatedAt = Date.now();
+          if (stage.id === "won") lead.wonAt = Date.now();
           addNote(lead, `Moved to ${stage.label}`);
           save();
           render();
@@ -972,7 +1215,8 @@
         ${lead.value ? `<span class="value">${money(Number(lead.value))}</span>` : ""}
         ${lead.source ? `<span class="tag">${esc(lead.source)}</span>` : ""}
         ${followHtml}
-      </div>`;
+      </div>
+      ${lead.requirements ? `<div class="req-preview">📋 ${esc(lead.requirements)}</div>` : ""}`;
 
     el.addEventListener("click", () => openPanel(lead.id));
     el.addEventListener("dragstart", (e) => {
@@ -1044,6 +1288,8 @@
     $("f-source").value = lead?.source || "";
     $("f-value").value = lead?.value ?? "";
     $("f-followup").value = lead?.followUp || "";
+    $("f-req").value = lead?.requirements || "";
+    $("add-to-calendar").hidden = !$("f-followup").value;
 
     const stageSel = $("f-stage");
     stageSel.innerHTML = STAGES.map((s) => `<option value="${s.id}">${s.label}</option>`).join("");
@@ -1096,14 +1342,17 @@
       value: $("f-value").value ? Number($("f-value").value) : null,
       stage: $("f-stage").value,
       followUp: $("f-followup").value || null,
+      requirements: $("f-req").value.trim(),
       updatedAt: Date.now(),
     };
 
     if (editingId) {
       const lead = leads.find((l) => l.id === editingId);
+      if (data.stage === "won" && lead.stage !== "won") data.wonAt = Date.now();
       Object.assign(lead, data);
       toast("Lead updated");
     } else {
+      if (data.stage === "won") data.wonAt = Date.now();
       leads.push({ id: uid(), createdAt: Date.now(), notes: [], ...data });
       toast("Lead added");
     }
@@ -1135,7 +1384,7 @@
   }
 
   function exportCSV() {
-    const cols = ["name", "company", "email", "phone", "source", "value", "stage", "followUp"];
+    const cols = ["name", "company", "email", "phone", "source", "value", "stage", "followUp", "requirements"];
     const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = [cols.join(",")];
     for (const l of leads) {
@@ -1226,6 +1475,7 @@
         value: "value", dealvalue: "value", amount: "value", budget: "value",
         stage: "stage", status: "stage", pipeline: "stage",
         followup: "followUp", nextfollowup: "followUp", followupdate: "followUp", nextfollowupdate: "followUp",
+        requirements: "requirements", requirement: "requirements", clientrequirements: "requirements", needs: "requirements", brief: "requirements",
       };
       const cols = rows[0].map((h) => ALIASES[norm(h)] || null);
       if (!cols.includes("name")) {
@@ -1257,6 +1507,7 @@
           value: rec.value ? Number(rec.value.replace(/[^0-9.]/g, "")) || null : null,
           stage: stageByLabel[(rec.stage || "").toLowerCase()] || "new",
           followUp: parseCSVDate(rec.followUp || ""),
+          requirements: rec.requirements || "",
           notes: [],
         };
         if (existing.has(dupeKey(lead))) { skipped++; continue; }
@@ -1447,6 +1698,33 @@
 
   /* ---------- Wiring ---------- */
 
+  $("view-board").addEventListener("click", () => setView("board"));
+  $("view-stats").addEventListener("click", () => setView("stats"));
+
+  $("f-followup").addEventListener("input", () => {
+    $("add-to-calendar").hidden = !$("f-followup").value;
+  });
+
+  $("add-to-calendar").addEventListener("click", () => {
+    const date = $("f-followup").value;
+    if (!date) return;
+    const name = $("f-name").value.trim() || "lead";
+    const company = $("f-company").value.trim();
+    const start = date.replace(/-/g, "");
+    const d = new Date(date + "T00:00:00");
+    d.setDate(d.getDate() + 1);
+    const end = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    const details = [
+      $("f-phone").value.trim(), $("f-email").value.trim(), $("f-req").value.trim(),
+      "— Mindscape CRM",
+    ].filter(Boolean).join("\n");
+    const url = "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+      "&text=" + encodeURIComponent(`Follow up: ${name}${company ? " · " + company : ""}`) +
+      "&dates=" + start + "/" + end +
+      "&details=" + encodeURIComponent(details);
+    window.open(url, "_blank", "noopener");
+  });
+
   $("new-lead-btn").addEventListener("click", () => openPanel(null));
   $("panel-close").addEventListener("click", closePanel);
   $("overlay").addEventListener("click", closePanel);
@@ -1505,6 +1783,10 @@
 
   render();
   if (syncCfg) syncNow();
+
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js");
+  }
 })();
 </script>
 </body>
