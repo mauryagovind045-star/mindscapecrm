@@ -534,6 +534,11 @@
     if (!s) return "";
     return new Date(s + "T12:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   }
+  function fmtLeadDate(L) {
+    if (!L.leadDate) return "";
+    if (L.dateMonthOnly) return new Date(L.leadDate + "T12:00:00").toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+    return fmtD(L.leadDate);
+  }
   function esc(s) {
     return String(s ?? "").replace(/[&<>"']/g, (c) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -701,7 +706,7 @@
     c.innerHTML = `
       <div class="top"><span class="name" role="button" tabindex="0">${esc(L.name) || "(no name)"}</span>${badges}</div>
       <div class="req"><b>${esc((L.config ? L.config + " " : "") + (L.ptype || ""))}</b>${L.location ? " in <b>" + esc(L.location) + "</b>" : ""}${budgetStr(L) ? " · " + budgetStr(L) : ""}${L.phone ? " · " + esc(L.phone) : ""}</div>
-      <div class="metad">${L.leadDate ? "Enquired " + fmtD(L.leadDate) : ""}${L.email ? " · " + esc(L.email) : ""}</div>
+      <div class="metad">${L.leadDate ? "Enquired " + fmtLeadDate(L) : ""}${L.email ? " · " + esc(L.email) : ""}</div>
       <div class="acts">
         <a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(waMsg(L))}">${svgWA} WhatsApp</a>
         <a class="btn call" href="tel:${String(L.phone || "").replace(/[^0-9+]/g, "")}">${svgCall} Call</a>
@@ -921,7 +926,8 @@
           name: o.n || "", phone: o.p || "", wa: o.wa || "", email: "",
           category: o.c || "R", config: o.cf || "", ptype: o.t || "",
           location: o.l || "", zone: o.z || "", budget: o.b || 0,
-          leadDate: o.d || "", repeat: !!o.re, source: "Portal",
+          leadDate: o.d || (o.m ? o.m + "-01" : ""), dateMonthOnly: !o.d && !!o.m,
+          repeat: !!o.re, source: "Portal",
           status: "New", outcome: "", urgency: "", lastCalled: "", followUp: null,
           attempts: 0, requirements: "", notes: [],
         });
