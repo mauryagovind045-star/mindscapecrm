@@ -1,4 +1,4 @@
-const CACHE = "mindscape-v1";
+const CACHE = "mindscape-v2";
 const CORE = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {

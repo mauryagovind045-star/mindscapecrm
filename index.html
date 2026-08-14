@@ -6,7 +6,7 @@
 <title>Mindscape CRM</title>
 <meta name="theme-color" content="#221b41">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,16 +29,19 @@
     --iris-soft: #eceafe;
     --overdue: #d9480f;
     --overdue-soft: #fdeee6;
-    --today: #b25e09;
     --today-soft: #fdf3e3;
     --won: #0c7a54;
     --won-soft: #e2f5ec;
-    --lost: #8a8797;
-    --lost-soft: #efeef3;
-    --teal: #0b7285;
-    --teal-soft: #e2f2f5;
-    --amber: #b0530b;
-    --amber-soft: #fbf0e0;
+    --wa: #12a150;
+    --wa-deep: #0e8a44;
+    --rent: #0b7285;
+    --rent-soft: #e2f2f5;
+    --sale: #0c7a54;
+    --sale-soft: #e2f5ec;
+    --hot: #b0530b;
+    --hot-soft: #fbf0e0;
+    --sched: #5348e0;
+    --sched-soft: #eceafe;
     --shadow: 0 1px 2px rgba(34, 27, 65, 0.06), 0 4px 16px rgba(34, 27, 65, 0.07);
     --shadow-lift: 0 4px 8px rgba(34, 27, 65, 0.1), 0 12px 32px rgba(34, 27, 65, 0.14);
     --radius: 10px;
@@ -51,745 +54,301 @@
 
   [hidden] { display: none !important; }
 
-  html, body { height: 100%; }
-
   body {
     font-family: var(--font-body);
     background: var(--bg);
     color: var(--ink);
     font-size: 14px;
     line-height: 1.5;
-    display: flex;
-    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
   }
 
   button { font: inherit; cursor: pointer; color: inherit; background: none; border: none; }
   input, select, textarea { font: inherit; color: var(--ink); }
 
-  :focus-visible {
-    outline: 2px solid var(--iris);
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
+  :focus-visible { outline: 2px solid var(--iris); outline-offset: 2px; border-radius: 4px; }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 14px 90px; }
 
   /* ---------- Header ---------- */
-  .topbar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 24px;
-    background: var(--surface);
+  header.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(244, 242, 250, 0.95);
+    backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--line);
-    flex-wrap: wrap;
+    margin: 0 -14px;
+    padding: 10px 14px;
   }
 
+  .brand-row { display: flex; align-items: center; gap: 8px; }
+
   .brand {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 19px;
+    letter-spacing: -0.02em;
     margin-right: auto;
   }
 
-  .brand h1 {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 22px;
-    letter-spacing: -0.02em;
-  }
-
-  .brand h1 .dot { color: var(--iris); }
-
-  .brand .tagline {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.04em;
-  }
-
-  .view-toggle {
-    display: inline-flex;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 3px;
-    gap: 2px;
-  }
-
-  .view-toggle button {
-    padding: 5px 14px;
-    border-radius: 7px;
-    font-weight: 600;
-    color: var(--muted);
-  }
-
-  .view-toggle button.active {
-    background: var(--surface);
-    color: var(--ink);
-    box-shadow: var(--shadow);
-  }
-
-  .search-wrap { position: relative; }
-
-  .search-wrap svg {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    pointer-events: none;
-  }
-
-  #search {
-    width: 220px;
-    padding: 8px 12px 8px 32px;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    background: var(--bg);
-  }
-
-  #search::placeholder { color: var(--muted); }
-
-  #source-filter {
-    padding: 8px 32px 8px 12px;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    background: var(--bg);
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a748f' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    cursor: pointer;
-  }
+  .brand .dot { color: var(--iris); }
 
   .btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    padding: 8px 14px;
+    padding: 7px 12px;
     border-radius: var(--radius);
     font-weight: 600;
+    font-size: 13px;
     border: 1px solid var(--line-strong);
     background: var(--surface);
-    transition: background 0.15s, border-color 0.15s;
+    text-decoration: none;
+    transition: background 0.15s;
   }
 
   .btn:hover { background: var(--bg); }
 
-  .btn-primary {
-    background: var(--iris);
-    border-color: var(--iris);
-    color: #fff;
-  }
+  .btn-primary { background: var(--iris); border-color: var(--iris); color: #fff; }
+  .btn-primary:hover { background: var(--iris-deep); }
 
-  .btn-primary:hover { background: var(--iris-deep); border-color: var(--iris-deep); }
-
-  .menu-wrap { position: relative; }
-
-  .menu {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 6px);
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-lift);
-    min-width: 190px;
-    padding: 6px;
-    z-index: 40;
-    display: none;
-  }
-
-  .menu.open { display: block; }
-
-  .menu button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 8px 10px;
-    border-radius: 6px;
-    font-weight: 500;
-  }
-
-  .menu button:hover { background: var(--iris-soft); }
-
-  .menu .menu-note {
-    padding: 8px 10px 4px;
-    font-size: 11px;
-    color: var(--muted);
-    border-top: 1px solid var(--line);
-    margin-top: 4px;
-  }
-
-  /* ---------- Today ribbon (signature) ---------- */
-  .today-ribbon {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 24px;
-    background: var(--ink);
-    color: #f2effc;
-    overflow-x: auto;
-  }
-
-  .today-ribbon[hidden] { display: none; }
-
-  .today-count {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 17px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .today-count em {
-    font-style: normal;
-    color: #b8b0f4;
-  }
-
-  .today-chips { display: flex; gap: 8px; }
-
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 12px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    color: #f2effc;
-    font-weight: 500;
-    white-space: nowrap;
-    transition: background 0.15s;
-  }
-
-  .chip:hover { background: rgba(255, 255, 255, 0.2); }
-
-  .chip .due-tag {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    padding: 1px 7px;
-    border-radius: 999px;
-  }
-
-  .chip .due-tag.overdue { background: var(--overdue); color: #fff; }
-  .chip .due-tag.due-today { background: #e8a33d; color: var(--ink); }
-
-  /* ---------- Board ---------- */
-  .board {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(5, minmax(240px, 1fr));
-    gap: 14px;
-    padding: 18px 24px 24px;
-    overflow-x: auto;
-    align-items: start;
-  }
-
-  .column {
-    background: rgba(255, 255, 255, 0.55);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    display: flex;
-    flex-direction: column;
-    max-height: 100%;
-    min-width: 240px;
-  }
-
-  .column.drag-over {
-    border-color: var(--iris);
-    background: var(--iris-soft);
-  }
-
-  .col-head {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 12px 14px 8px;
-  }
-
-  .col-head .swatch {
-    width: 9px;
-    height: 9px;
-    border-radius: 3px;
-    flex-shrink: 0;
-    align-self: center;
-  }
-
-  .col-head h2 {
-    font-family: var(--font-display);
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-  }
-
-  .col-head .count {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .col-head .col-value {
-    margin-left: auto;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--ink-soft);
-  }
-
-  .col-body {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 4px 10px 12px;
-    min-height: 60px;
-    overflow-y: auto;
-  }
-
-  .col-empty {
-    font-size: 12.5px;
-    color: var(--muted);
-    padding: 10px 6px;
-    text-align: center;
-  }
-
-  /* ---------- Stats ---------- */
-  .stats {
-    flex: 1;
-    overflow-y: auto;
-    padding: 18px 24px 24px;
-  }
-
-  .tiles {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 14px;
-    margin-bottom: 18px;
-  }
-
-  .tile {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 14px 16px;
-  }
-
-  .tile .tile-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-  }
-
-  .tile .tile-value {
-    font-family: var(--font-mono);
-    font-size: 24px;
-    font-weight: 600;
-    margin-top: 2px;
-    letter-spacing: -0.01em;
-  }
-
-  .tile.alert .tile-value { color: var(--overdue); }
-
-  .charts {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 14px;
-  }
-
-  .chart-card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 16px 18px;
-  }
-
-  .chart-card h2 {
-    font-family: var(--font-display);
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 12px;
-  }
-
-  .bar-row {
-    display: grid;
-    grid-template-columns: minmax(84px, auto) 1fr auto;
-    gap: 12px;
-    align-items: center;
-    padding: 5px 0;
-  }
-
-  .bar-row .bar-label {
-    font-size: 13px;
-    color: var(--ink-soft);
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    white-space: nowrap;
-  }
-
-  .bar-row .bar-label .swatch {
-    width: 9px;
-    height: 9px;
-    border-radius: 3px;
-    flex-shrink: 0;
-  }
-
-  .bar-track {
-    height: 12px;
-    background: var(--bg);
-    border-radius: 0 4px 4px 0;
-  }
-
-  .bar-fill {
-    height: 100%;
-    background: var(--iris);
-    border-radius: 0 4px 4px 0;
-    min-width: 2px;
-  }
-
-  .bar-row .bar-value {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--ink);
-    text-align: right;
-  }
-
-  .chart-empty { font-size: 13px; color: var(--muted); padding: 6px 0; }
-
-  /* ---------- Cards ---------- */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 11px 12px;
-    box-shadow: var(--shadow);
-    cursor: grab;
-    text-align: left;
-    width: 100%;
-    display: block;
-    transition: box-shadow 0.15s, transform 0.15s;
-  }
-
-  .card:hover { box-shadow: var(--shadow-lift); transform: translateY(-1px); }
-
-  .card.dragging { opacity: 0.45; }
-
-  .card .name { font-weight: 700; font-size: 14px; }
-
-  .card .company { color: var(--ink-soft); font-size: 13px; }
-
-  .card .meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-    flex-wrap: wrap;
-  }
-
-  .card .value {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink);
-  }
-
-  .tag {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: var(--lost-soft);
-    color: var(--ink-soft);
-    letter-spacing: 0.02em;
-  }
-
-  .followup {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    color: var(--ink-soft);
-    background: var(--bg);
-  }
-
-  .followup.overdue { background: var(--overdue-soft); color: var(--overdue); font-weight: 600; }
-  .followup.due-today { background: var(--today-soft); color: var(--today); font-weight: 600; }
-
-  .req-preview {
-    font-size: 12px;
-    color: var(--ink-soft);
-    margin-top: 7px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .btn-cal {
-    width: 100%;
-    justify-content: center;
-    margin: -4px 0 13px;
-    font-size: 13px;
-  }
-
-  /* ---------- Slide-over panel ---------- */
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(34, 27, 65, 0.35);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-    z-index: 50;
-  }
-
-  .overlay.open { opacity: 1; pointer-events: auto; }
-
-  .panel {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: min(440px, 100vw);
-    background: var(--surface);
-    box-shadow: var(--shadow-lift);
-    transform: translateX(100%);
-    visibility: hidden;
-    transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s 0.25s;
-    z-index: 60;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .panel.open { transform: translateX(0); visibility: visible; transition-delay: 0s; }
-
-  .panel-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 22px 0;
-  }
-
-  .panel-head h2 {
-    font-family: var(--font-display);
-    font-size: 19px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-  }
-
-  .panel-close {
-    padding: 6px;
-    border-radius: 6px;
-    color: var(--muted);
-    line-height: 0;
-  }
-
-  .panel-close:hover { background: var(--bg); color: var(--ink); }
-
-  .panel-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 14px 22px 22px;
-  }
-
-  .field { margin-bottom: 13px; }
-
-  .field label {
-    display: block;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink-soft);
-    margin-bottom: 4px;
-  }
-
-  .field input, .field select, .field textarea {
-    width: 100%;
-    padding: 8px 11px;
-    border: 1px solid var(--line-strong);
-    border-radius: 8px;
-    background: var(--surface);
-  }
-
-  .field textarea { resize: vertical; min-height: 64px; }
-
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-  .panel-actions {
-    display: flex;
-    gap: 10px;
-    padding: 14px 22px;
-    border-top: 1px solid var(--line);
-    background: var(--surface);
-  }
-
-  .panel-actions .btn-primary { flex: 1; justify-content: center; }
-
-  .btn-danger { color: var(--overdue); border-color: var(--line-strong); }
-  .btn-danger:hover { background: var(--overdue-soft); }
-
-  /* ---------- Notes timeline ---------- */
-  .notes-section { margin-top: 20px; }
-
-  .notes-section h3 {
-    font-family: var(--font-display);
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 8px;
-  }
-
-  .note-form { display: flex; gap: 8px; margin-bottom: 12px; }
-
-  .note-form input { flex: 1; padding: 8px 11px; border: 1px solid var(--line-strong); border-radius: 8px; }
-
-  .note-list { list-style: none; }
-
-  .note-list li {
-    position: relative;
-    padding: 0 0 14px 18px;
-    border-left: 2px solid var(--line);
-    margin-left: 5px;
-  }
-
-  .note-list li::before {
-    content: "";
-    position: absolute;
-    left: -5px;
-    top: 4px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--iris);
-  }
-
-  .note-list li:last-child { padding-bottom: 2px; }
-
-  .note-list .note-ts {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: var(--muted);
-    display: block;
-  }
-
-  .note-list .note-text { font-size: 13px; }
-
-  .note-empty { font-size: 13px; color: var(--muted); }
-
-  /* ---------- Empty board ---------- */
-  .board-empty {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 70px 20px;
-  }
-
-  .board-empty h2 {
-    font-family: var(--font-display);
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    margin-bottom: 8px;
-  }
-
-  .board-empty p { color: var(--muted); margin-bottom: 18px; }
-
-  /* ---------- Sync ---------- */
-  .sync-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--line-strong);
-    flex-shrink: 0;
-  }
-
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); flex-shrink: 0; }
   .sync-dot.ok { background: var(--won); }
   .sync-dot.syncing { background: #e8a33d; }
   .sync-dot.error { background: var(--overdue); }
 
+  .menu-wrap { position: relative; }
+
+  .menu {
+    position: absolute; right: 0; top: calc(100% + 6px);
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow-lift);
+    min-width: 230px; padding: 6px; z-index: 40; display: none;
+  }
+
+  .menu.open { display: block; }
+
+  .menu button { display: block; width: 100%; text-align: left; padding: 8px 10px; border-radius: 6px; font-weight: 500; }
+  .menu button:hover { background: var(--iris-soft); }
+  .menu .menu-note { padding: 8px 10px 4px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--line); margin-top: 4px; }
+
+  /* ---------- Tabs & filters ---------- */
+  .tabs {
+    display: flex; gap: 6px; margin-top: 10px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    font-size: 13px; font-weight: 600; white-space: nowrap;
+    border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted);
+    border-radius: 999px; padding: 7px 14px;
+    display: inline-flex; gap: 6px; align-items: center;
+  }
+
+  .tab[aria-selected="true"] { background: var(--ink); color: #f2effc; border-color: var(--ink); }
+
+  .tab .b {
+    background: rgba(34, 27, 65, 0.1); border-radius: 999px; padding: 0 7px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  }
+  .tab[aria-selected="true"] .b { background: rgba(255, 255, 255, 0.22); }
+  .tab .b.alert { background: var(--overdue); color: #fff; }
+
+  .filters { display: flex; gap: 7px; margin-top: 9px; flex-wrap: wrap; }
+
+  .filters input[type="search"], .filters select, .field input, .field select, .field textarea {
+    background: var(--surface); border: 1px solid var(--line-strong);
+    border-radius: 9px; padding: 8px 10px; font-size: 13.5px;
+  }
+
+  .filters input[type="search"] { flex: 1; min-width: 150px; }
+
+  .filters select, #f-cat, #f-ptype, #f-zone, #f-status, #f-urgency {
+    appearance: none; padding-right: 26px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%237a748f' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 9px center;
+  }
+
+  /* ---------- Dashboard ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 16px; }
+
+  .tile {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 13px; padding: 13px 15px; box-shadow: var(--shadow); cursor: pointer;
+    text-align: left;
+  }
+
+  .tile .num { font-family: var(--font-mono); font-size: 26px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+  .tile .lbl { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .tile.due .num { color: var(--overdue); }
+  .tile.tocall .num { color: var(--rent); }
+  .tile.won .num { color: var(--won); }
+
+  .dashsec { margin-top: 22px; }
+  .dashsec h3 {
+    font-family: var(--font-display); font-size: 13px; color: var(--ink);
+    font-weight: 700; margin-bottom: 10px;
+  }
+
+  .barrow { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; font-size: 13px; }
+  .barrow .k { width: 140px; flex-shrink: 0; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .barrow .track { flex: 1; background: rgba(255,255,255,0.7); border: 1px solid var(--line); border-radius: 0 4px 4px 0; height: 14px; overflow: hidden; }
+  .barrow .fill { height: 100%; background: var(--iris); border-radius: 0 4px 4px 0; min-width: 2px; }
+  .barrow .v { width: 44px; text-align: right; font-family: var(--font-mono); font-size: 12px; color: var(--ink); }
+
+  .dash-note { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* ---------- Lead cards ---------- */
+  .list { margin-top: 14px; display: flex; flex-direction: column; gap: 11px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 13px; padding: 13px 14px; box-shadow: var(--shadow);
+  }
+
+  .card.done { opacity: 0.55; }
+
+  .top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .name { font-weight: 700; font-size: 15px; cursor: pointer; }
+  .name:hover { color: var(--iris); }
+
+  .tag { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .tag.r { color: var(--rent); background: var(--rent-soft); }
+  .tag.s { color: var(--sale); background: var(--sale-soft); }
+  .tag.hot { color: var(--hot); background: var(--hot-soft); }
+  .tag.due { color: var(--overdue); background: var(--overdue-soft); }
+  .tag.sched { color: var(--sched); background: var(--sched-soft); }
+  .tag.rep { color: var(--ink-soft); background: var(--bg); }
+
+  .req { color: var(--ink-soft); font-size: 13px; margin-top: 5px; }
+  .req b { color: var(--ink); font-weight: 600; }
+
+  .metad { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  .acts { display: flex; gap: 7px; margin-top: 10px; }
+  .btn.wa { background: var(--wa); border-color: var(--wa); color: #fff; flex: 1; }
+  .btn.wa:hover { background: var(--wa-deep); }
+  .btn.call { flex: 1; color: var(--iris); }
+  .btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+  .track2 {
+    margin-top: 11px; padding-top: 11px; border-top: 1px dashed var(--line);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+
+  .fld { display: flex; flex-direction: column; gap: 3px; }
+  .fld label { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .fld select, .fld input {
+    width: 100%; padding: 7px 8px; font-size: 13px;
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px;
+  }
+  .fld.full { grid-column: 1 / 3; }
+  .fld textarea {
+    width: 100%; font: inherit; font-size: 13px; padding: 7px 8px;
+    border: 1px solid var(--line-strong); border-radius: 8px;
+    resize: vertical; min-height: 38px; background: var(--surface);
+  }
+
+  .nf-row { display: flex; gap: 5px; align-items: center; }
+  .nf-row input { flex: 1; }
+  .cal-btn { padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); font-size: 13px; }
+  .cal-btn:hover { background: var(--iris-soft); }
+
+  .quick { display: flex; gap: 5px; flex-wrap: wrap; }
+  .qbtn {
+    font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--line-strong);
+    background: var(--bg); color: var(--iris-deep); border-radius: 7px; padding: 5px 9px; font-weight: 600;
+  }
+  .qbtn:active { background: var(--iris); color: #fff; }
+
+  .more {
+    margin: 18px auto 0; display: block; background: var(--surface);
+    border: 1px solid var(--line-strong); color: var(--iris-deep);
+    font-weight: 600; border-radius: var(--radius); padding: 11px 20px;
+  }
+
+  .empty { text-align: center; color: var(--muted); padding: 44px 20px; font-size: 14px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 9px; text-align: center; }
+
+  /* ---------- Panel ---------- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(34, 27, 65, 0.35);
+    opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 50;
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+
+  .panel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100vw);
+    background: var(--surface); box-shadow: var(--shadow-lift);
+    transform: translateX(100%); visibility: hidden;
+    transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s 0.25s;
+    z-index: 60; display: flex; flex-direction: column;
+  }
+  .panel.open { transform: translateX(0); visibility: visible; transition-delay: 0s; }
+
+  .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 0; }
+  .panel-head h2 { font-family: var(--font-display); font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .panel-close { padding: 6px; border-radius: 6px; color: var(--muted); line-height: 0; }
+  .panel-close:hover { background: var(--bg); color: var(--ink); }
+
+  .panel-body { flex: 1; overflow-y: auto; padding: 12px 20px 20px; }
+
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-bottom: 4px; }
+  .field input, .field select, .field textarea { width: 100%; border-radius: 8px; }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .panel-actions { display: flex; gap: 10px; padding: 13px 20px; border-top: 1px solid var(--line); }
+  .panel-actions .btn-primary { flex: 1; }
+  .btn-danger { color: var(--overdue); }
+  .btn-danger:hover { background: var(--overdue-soft); }
+
+  .notes-section { margin-top: 16px; }
+  .notes-section h3 { font-family: var(--font-display); font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .note-form { display: flex; gap: 8px; margin-bottom: 12px; }
+  .note-form input { flex: 1; padding: 8px 11px; border: 1px solid var(--line-strong); border-radius: 8px; }
+  .note-list { list-style: none; }
+  .note-list li { position: relative; padding: 0 0 14px 18px; border-left: 2px solid var(--line); margin-left: 5px; }
+  .note-list li::before { content: ""; position: absolute; left: -5px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--iris); }
+  .note-list .note-ts { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); display: block; }
+  .note-list .note-text { font-size: 13px; }
+
+  /* ---------- Sync modal ---------- */
   .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(34, 27, 65, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 70;
-    padding: 16px;
+    position: fixed; inset: 0; background: rgba(34, 27, 65, 0.45);
+    display: flex; align-items: center; justify-content: center; z-index: 70; padding: 16px;
   }
-
   .modal {
-    background: var(--surface);
-    border-radius: 14px;
-    box-shadow: var(--shadow-lift);
-    width: min(470px, 100%);
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: 22px;
+    background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-lift);
+    width: min(470px, 100%); max-height: 90vh; overflow-y: auto; padding: 22px;
   }
-
-  .modal h2 {
-    font-family: var(--font-display);
-    font-size: 19px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-  }
-
+  .modal h2 { font-family: var(--font-display); font-size: 19px; font-weight: 800; }
   .modal-sub { color: var(--muted); font-size: 13px; margin: 4px 0 16px; }
-
-  .sync-help {
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin-bottom: 12px;
-    font-size: 13px;
-  }
-
+  .sync-help { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }
   .sync-help summary { cursor: pointer; font-weight: 600; }
-
   .sync-help ol { margin: 8px 0 2px 18px; }
-
-  .sync-help li { margin-bottom: 4px; }
-
   .sync-help a { color: var(--iris); }
-
   .sync-status { font-size: 12.5px; min-height: 18px; margin-bottom: 10px; color: var(--muted); }
-
   .sync-status.error { color: var(--overdue); }
-
   .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
   /* ---------- Toast ---------- */
   .toast {
-    position: fixed;
-    bottom: 22px;
-    left: 50%;
-    transform: translate(-50%, 80px);
-    background: var(--ink);
-    color: #f2effc;
-    padding: 10px 18px;
-    border-radius: 999px;
-    font-weight: 500;
-    box-shadow: var(--shadow-lift);
-    transition: transform 0.25s;
-    z-index: 80;
+    position: fixed; bottom: 22px; left: 50%; transform: translate(-50%, 80px);
+    background: var(--ink); color: #f2effc; padding: 10px 18px; border-radius: 999px;
+    font-weight: 500; box-shadow: var(--shadow-lift); transition: transform 0.25s; z-index: 80;
   }
-
   .toast.show { transform: translate(-50%, 0); }
 
-  /* ---------- Footer ---------- */
-  .foot {
-    padding: 10px 24px;
-    font-size: 11.5px;
-    color: var(--muted);
-    text-align: center;
-    border-top: 1px solid var(--line);
-    background: var(--surface);
-  }
-
-  @media (max-width: 720px) {
-    .topbar { padding: 12px 14px; }
-    #search { width: 140px; }
-    .board { padding: 14px; grid-template-columns: repeat(5, 78vw); }
-    .today-ribbon { padding: 10px 14px; }
+  @media (max-width: 520px) {
+    .track2 { grid-template-columns: 1fr; }
+    .fld.full { grid-column: 1; }
+    .field-row { grid-template-columns: 1fr; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -798,63 +357,44 @@
 </style>
 </head>
 <body>
-
-<header class="topbar">
-  <div class="brand">
-    <h1>Mindscape<span class="dot">.</span></h1>
-    <span class="tagline">personal CRM</span>
-  </div>
-  <div class="view-toggle" role="tablist" aria-label="View">
-    <button id="view-board" class="active" role="tab" aria-selected="true">Board</button>
-    <button id="view-stats" role="tab" aria-selected="false">Stats</button>
-  </div>
-  <div class="search-wrap">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-    <input id="search" type="search" placeholder="Search name or company" aria-label="Search leads">
-  </div>
-  <select id="source-filter" aria-label="Filter by source">
-    <option value="">All sources</option>
-  </select>
-  <button class="btn" id="sync-btn" title="Sync across devices">
-    <span class="sync-dot" id="sync-dot"></span>Sync
-  </button>
-  <div class="menu-wrap">
-    <button class="btn" id="data-menu-btn" aria-haspopup="true" aria-expanded="false">Data
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
-    </button>
-    <div class="menu" id="data-menu" role="menu">
-      <button id="export-csv">Export CSV</button>
-      <button id="export-json">Export JSON backup</button>
-      <button id="import-json">Import JSON backup</button>
-      <button id="import-csv">Import CSV</button>
-      <div class="menu-note">All data stays in this browser. Export a backup anytime.</div>
+<div class="wrap">
+  <header class="topbar">
+    <div class="brand-row">
+      <div class="brand">Mindscape<span class="dot">.</span></div>
+      <button class="btn" id="sync-btn" title="Sync across devices"><span class="sync-dot" id="sync-dot"></span>Sync</button>
+      <div class="menu-wrap">
+        <button class="btn" id="data-menu-btn" aria-haspopup="true" aria-expanded="false">Data</button>
+        <div class="menu" id="data-menu" role="menu">
+          <button id="export-csv">Export CSV</button>
+          <button id="export-json">Export JSON backup</button>
+          <button id="import-json">Import JSON backup</button>
+          <button id="import-old-html">Import old CRM file (.html)</button>
+          <button id="import-old-track">Import old tracking backup</button>
+          <div class="menu-note">Data syncs to your private GitHub repo. Export a backup now and then anyway.</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="new-lead-btn">+ New</button>
     </div>
-  </div>
-  <button class="btn btn-primary" id="new-lead-btn">+ New lead</button>
-</header>
+    <div class="tabs" id="tabs" role="tablist">
+      <button class="tab" data-v="dash" aria-selected="true">Dashboard</button>
+      <button class="tab" data-v="due" aria-selected="false">Due <span class="b" id="c-due">0</span></button>
+      <button class="tab" data-v="tocall" aria-selected="false">To Contact <span class="b" id="c-tocall">0</span></button>
+      <button class="tab" data-v="all" aria-selected="false">All Leads</button>
+    </div>
+    <div class="filters" id="filters" hidden>
+      <input type="search" id="q" placeholder="Search name, phone, area…" autocomplete="off" aria-label="Search leads">
+      <select id="fcat" aria-label="Category"><option value="">All types</option><option value="R">Rental</option><option value="S">Sale</option></select>
+      <select id="fzone" aria-label="Zone"><option value="">All zones</option></select>
+      <select id="fstatus" aria-label="Status"><option value="">All statuses</option></select>
+      <select id="fmonth" aria-label="Month"><option value="">All months</option></select>
+    </div>
+  </header>
 
-<div class="today-ribbon" id="today-ribbon" hidden>
-  <span class="today-count" id="today-count"></span>
-  <div class="today-chips" id="today-chips"></div>
+  <div id="dash"></div>
+  <div class="list" id="list"></div>
+  <button class="more" id="more" hidden>Show more</button>
+  <div class="hint" id="hint"></div>
 </div>
-
-<main class="board" id="board" aria-label="Lead pipeline"></main>
-
-<main class="stats" id="stats" hidden aria-label="Pipeline statistics">
-  <div class="tiles" id="stat-tiles"></div>
-  <div class="charts">
-    <section class="chart-card">
-      <h2>Pipeline value by stage</h2>
-      <div id="chart-stages"></div>
-    </section>
-    <section class="chart-card">
-      <h2>Leads by source</h2>
-      <div id="chart-sources"></div>
-    </section>
-  </div>
-</main>
-
-<footer class="foot">Mindscape · your leads never leave this browser · use Data → Export for backups</footer>
 
 <div class="overlay" id="overlay"></div>
 
@@ -867,56 +407,41 @@
   </div>
   <div class="panel-body">
     <form id="lead-form">
-      <div class="field">
-        <label for="f-name">Name</label>
-        <input id="f-name" required placeholder="Asha Verma">
-      </div>
-      <div class="field">
-        <label for="f-company">Company</label>
-        <input id="f-company" placeholder="Verma Interiors">
+      <div class="field"><label for="p-name">Name</label><input id="p-name" required></div>
+      <div class="field-row">
+        <div class="field"><label for="p-phone">Phone</label><input id="p-phone" placeholder="98xxxxxxxx"></div>
+        <div class="field"><label for="p-email">Email</label><input id="p-email" type="email"></div>
       </div>
       <div class="field-row">
-        <div class="field">
-          <label for="f-email">Email</label>
-          <input id="f-email" type="email" placeholder="asha@example.com">
-        </div>
-        <div class="field">
-          <label for="f-phone">Phone</label>
-          <input id="f-phone" placeholder="+91 98…">
-        </div>
+        <div class="field"><label for="p-cat">Rental / Sale</label>
+          <select id="p-cat"><option value="R">Rental</option><option value="S">Sale</option></select></div>
+        <div class="field"><label for="p-config">Config</label><input id="p-config" placeholder="2 BHK" list="config-options">
+          <datalist id="config-options"><option value="1 BHK"><option value="2 BHK"><option value="3 BHK"><option value="4 BHK"><option value="5 BHK"><option value="Studio"></datalist></div>
       </div>
       <div class="field-row">
-        <div class="field">
-          <label for="f-source">Source</label>
-          <input id="f-source" list="source-options" placeholder="Referral, Instagram…">
-          <datalist id="source-options"></datalist>
-        </div>
-        <div class="field">
-          <label for="f-value">Deal value (₹)</label>
-          <input id="f-value" type="number" min="0" step="any" placeholder="50000">
-        </div>
+        <div class="field"><label for="p-ptype">Property type</label><input id="p-ptype" list="ptype-options">
+          <datalist id="ptype-options"></datalist></div>
+        <div class="field"><label for="p-budget">Budget (₹)</label><input id="p-budget" type="number" min="0" step="any"></div>
       </div>
       <div class="field-row">
-        <div class="field">
-          <label for="f-stage">Stage</label>
-          <select id="f-stage"></select>
-        </div>
-        <div class="field">
-          <label for="f-followup">Next follow-up</label>
-          <input id="f-followup" type="date">
-        </div>
+        <div class="field"><label for="p-location">Location</label><input id="p-location" list="loc-options"><datalist id="loc-options"></datalist></div>
+        <div class="field"><label for="p-zone">Zone</label><input id="p-zone" list="zone-options"><datalist id="zone-options"></datalist></div>
       </div>
-      <button type="button" class="btn btn-cal" id="add-to-calendar" hidden>📅 Add follow-up to Google Calendar</button>
-      <div class="field">
-        <label for="f-req">Client requirements</label>
-        <textarea id="f-req" rows="3" placeholder="What they need — specs, budget, timeline, preferences…"></textarea>
+      <div class="field-row">
+        <div class="field"><label for="p-status">Status</label><select id="p-status"></select></div>
+        <div class="field"><label for="p-urgency">Urgency</label>
+          <select id="p-urgency"><option value="">—</option><option>Hot</option><option>Warm</option><option>Cold</option></select></div>
       </div>
+      <div class="field-row">
+        <div class="field"><label for="p-leaddate">Lead date</label><input id="p-leaddate" type="date"></div>
+        <div class="field"><label for="p-followup">Next follow-up</label><input id="p-followup" type="date"></div>
+      </div>
+      <div class="field"><label for="p-req">Requirements / notes from calls</label><textarea id="p-req" rows="3"></textarea></div>
     </form>
-
     <section class="notes-section" id="notes-section" hidden>
-      <h3>Notes &amp; activity</h3>
+      <h3>Activity log</h3>
       <div class="note-form">
-        <input id="note-input" placeholder="Log a call, meeting or thought…" aria-label="New note">
+        <input id="note-input" placeholder="Log a call, visit or thought…" aria-label="New note">
         <button class="btn" id="note-add">Add</button>
       </div>
       <ul class="note-list" id="note-list"></ul>
@@ -932,23 +457,16 @@
   <div class="modal" role="dialog" aria-modal="true" aria-label="Sync settings">
     <h2>Sync across devices</h2>
     <p class="modal-sub">Your leads are saved to a private GitHub repository, so every device set up with the same token stays in sync.</p>
-    <div class="field">
-      <label for="s-repo">Data repository</label>
-      <input id="s-repo" placeholder="owner/repo" autocomplete="off">
-    </div>
-    <div class="field">
-      <label for="s-token">GitHub token</label>
-      <input id="s-token" type="password" placeholder="github_pat_…" autocomplete="off">
-    </div>
+    <div class="field"><label for="s-repo">Data repository</label><input id="s-repo" placeholder="owner/repo" autocomplete="off"></div>
+    <div class="field"><label for="s-token">GitHub token</label><input id="s-token" type="password" placeholder="github_pat_…" autocomplete="off"></div>
     <details class="sync-help">
       <summary>How to get a token</summary>
       <ol>
         <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
-        <li>Under <strong>Repository access</strong>, choose <strong>Only select repositories</strong> and pick your data repo</li>
-        <li>Under <strong>Permissions → Repository permissions</strong>, set <strong>Contents</strong> to <strong>Read and write</strong></li>
-        <li>Generate the token and paste it above — repeat on each device you use</li>
+        <li>Repository access → <strong>Only select repositories</strong> → pick your data repo</li>
+        <li>Permissions → <strong>Contents: Read and write</strong> → Generate</li>
+        <li>Paste the token here, and on each device you use</li>
       </ol>
-      The token is stored only in this browser.
     </details>
     <div class="sync-status" id="sync-msg"></div>
     <div class="modal-actions">
@@ -960,348 +478,316 @@
 </div>
 
 <div class="toast" id="toast" role="status"></div>
-<input type="file" id="import-file" accept="application/json" hidden>
-<input type="file" id="import-csv-file" accept=".csv,text/csv" hidden>
+<input type="file" id="file-json" accept="application/json" hidden>
+<input type="file" id="file-html" accept=".html,text/html" hidden>
+<input type="file" id="file-track" accept="application/json" hidden>
 
 <script>
 (() => {
   "use strict";
 
-  const STORE_KEY = "mindscape-crm-v1";
-  const TOMB_KEY = "mindscape-tombstones-v1";
-  const SYNC_KEY = "mindscape-sync-v1";
+  const STORE_KEY = "mindscape-crm-v2";
+  const TOMB_KEY = "mindscape-tombstones-v2";
+  const SYNC_KEY = "mindscape-sync-v1";   // shared with v1 so an existing token keeps working
   const SYNC_FILE = "leads.json";
-  const STAGES = [
-    { id: "new",       label: "New",       color: "#5348e0" },
-    { id: "contacted", label: "Contacted", color: "#0b7285" },
-    { id: "qualified", label: "Qualified", color: "#b0530b" },
-    { id: "won",       label: "Won",       color: "#0c7a54" },
-    { id: "lost",      label: "Lost",      color: "#8a8797" },
-  ];
-  const OPEN_STAGES = ["new", "contacted", "qualified"];
+
+  const STATUSES = ["New", "Contacted", "Follow-Up", "Site Visit Scheduled", "Site Visit Done",
+    "Negotiation", "Closed - Won", "Closed - Lost", "Not Reachable", "Junk"];
+  const DONE = ["Closed - Won", "Closed - Lost", "Junk"];
+  const OUTCOMES = ["", "Interested", "Not interested", "No answer", "Call back", "WhatsApp sent",
+    "Site visit booked", "Deal in progress", "Wrong number"];
+  const PTYPES = ["Apartment", "Villa", "Penthouse", "Independent House", "Plot / Land",
+    "Commercial Office", "Commercial Shop / Showroom", "Warehouse / Godown", "Industrial Shed"];
 
   const $ = (id) => document.getElementById(id);
-  const board = $("board");
 
   function loadJSON(key, fallback) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch { return fallback; }
+    try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+    catch { return fallback; }
   }
 
   let leads = loadJSON(STORE_KEY, []);
-  let tombstones = loadJSON(TOMB_KEY, {});   // id -> deletion timestamp
-  let syncCfg = loadJSON(SYNC_KEY, null);    // { repo, token }
-  let editingId = null;   // null = creating a new lead
-  let draggingId = null;
+  let tombstones = loadJSON(TOMB_KEY, {});
+  let syncCfg = loadJSON(SYNC_KEY, null);
+  let editingId = null;
+
+  const state = { view: "dash", q: "", cat: "", zone: "", month: "", status: "", shown: 30 };
 
   function persistLocal() {
     localStorage.setItem(STORE_KEY, JSON.stringify(leads));
     localStorage.setItem(TOMB_KEY, JSON.stringify(tombstones));
   }
 
-  function save() {
-    persistLocal();
-    scheduleSync();
-  }
+  function save() { persistLocal(); scheduleSync(); }
 
-  function uid() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  }
+  function uid() { return "MSC-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
   function todayStr() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
-
-  function dueState(lead) {
-    if (!lead.followUp || !OPEN_STAGES.includes(lead.stage)) return null;
-    const t = todayStr();
-    if (lead.followUp < t) return "overdue";
-    if (lead.followUp === t) return "due-today";
-    return "upcoming";
+  function addDays(n) {
+    const d = new Date(); d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
-
-  function daysOverdue(dateStr) {
-    const ms = new Date(todayStr()) - new Date(dateStr);
-    return Math.round(ms / 86400000);
+  function fmtD(s) {
+    if (!s) return "";
+    return new Date(s + "T12:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   }
-
-  const inr = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
-  function money(n) {
-    return n ? "₹" + inr.format(n) : "";
-  }
-
-  function fmtDate(dateStr) {
-    const d = new Date(dateStr + "T00:00:00");
-    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-  }
-
   function esc(s) {
     return String(s ?? "").replace(/[&<>"']/g, (c) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
+  function normPhone(p) { const d = String(p || "").replace(/\D/g, ""); return d.length >= 10 ? d.slice(-10) : d; }
+
+  const inrFmt = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
+  function budgetStr(L) {
+    const b = Number(L.budget) || 0;
+    if (!b) return "";
+    if (L.category === "R") return "₹" + inrFmt.format(b) + "/month";
+    if (b >= 1e7) { const v = b / 1e7; return "₹" + (v % 1 ? v.toFixed(2) : v) + " Cr"; }
+    if (b >= 1e5) { const v = b / 1e5; return "₹" + (v % 1 ? v.toFixed(2) : v) + " Lac"; }
+    return "₹" + inrFmt.format(b);
+  }
+
+  function reqPhrase(L) {
+    return (L.config ? L.config + " " : "") + (L.ptype || "property") + (L.location ? " in " + L.location : "");
+  }
+
+  function greet(n) {
+    const f = (n || "").trim().split(/\s+/)[0];
+    if (/^[A-Za-z]{2,15}$/.test(f) && f.toLowerCase() !== "there") return "Hi " + f.charAt(0).toUpperCase() + f.slice(1);
+    return "Hi";
+  }
+
+  function waMsg(L) {
+    return `${greet(L.name)}, this is Govind from Mindscape Properties\nYou'd enquired about a ${reqPhrase(L)}${budgetStr(L) ? " around " + budgetStr(L) : ""} — I've got a few options that match well.\nShall I share the details and photos here? Just reply *yes* and I'll send them across.`;
+  }
+
+  function queueOf(L) {
+    if (DONE.includes(L.status)) return "done";
+    if (L.followUp && L.followUp <= todayStr()) return "due";
+    if (L.followUp) return "sched";
+    if (L.status === "New" && !L.lastCalled) return "tocall";
+    return "active";
+  }
+
+  /* ---------- Filters ---------- */
+
+  function fillFilters() {
+    const zones = [...new Set(leads.map((l) => l.zone).filter(Boolean))].sort();
+    const zsel = $("fzone"); const zcur = zsel.value;
+    zsel.innerHTML = '<option value="">All zones</option>' + zones.map((z) => `<option>${esc(z)}</option>`).join("");
+    if (zones.includes(zcur)) zsel.value = zcur;
+
+    const ssel = $("fstatus"); const scur = ssel.value;
+    ssel.innerHTML = '<option value="">All statuses</option>' + STATUSES.map((s) => `<option>${s}</option>`).join("");
+    if (STATUSES.includes(scur)) ssel.value = scur;
+
+    const months = [...new Set(leads.map((l) => (l.leadDate || "").slice(0, 7)).filter(Boolean))].sort().reverse();
+    const msel = $("fmonth"); const mcur = msel.value;
+    msel.innerHTML = '<option value="">All months</option>' + months.map((m) =>
+      `<option value="${m}">${new Date(m + "-01T12:00:00").toLocaleDateString("en-IN", { month: "short", year: "numeric" })}</option>`).join("");
+    if (months.includes(mcur)) msel.value = mcur;
+
+    $("zone-options").innerHTML = zones.map((z) => `<option value="${esc(z)}">`).join("");
+    const locs = [...new Set(leads.map((l) => l.location).filter(Boolean))].sort();
+    $("loc-options").innerHTML = locs.map((l) => `<option value="${esc(l)}">`).join("");
+    $("ptype-options").innerHTML = PTYPES.map((p) => `<option value="${p}">`).join("");
+  }
+
+  function filtered() {
+    const q = state.q.toLowerCase();
+    return leads.filter((L) => {
+      if (state.view === "due" && queueOf(L) !== "due") return false;
+      if (state.view === "tocall" && queueOf(L) !== "tocall") return false;
+      if (state.cat && L.category !== state.cat) return false;
+      if (state.zone && L.zone !== state.zone) return false;
+      if (state.month && (L.leadDate || "").slice(0, 7) !== state.month) return false;
+      if (state.status && L.status !== state.status) return false;
+      if (q && !((L.name + " " + L.phone + " " + (L.email || "") + " " + L.location + " " + (L.ptype || "")).toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }
 
   /* ---------- Rendering ---------- */
 
-  function currentFilter() {
-    const q = $("search").value.trim().toLowerCase();
-    const src = $("source-filter").value;
-    return (lead) => {
-      if (src && lead.source !== src) return false;
-      if (!q) return true;
-      return (lead.name || "").toLowerCase().includes(q) ||
-             (lead.company || "").toLowerCase().includes(q);
-    };
+  function counts() {
+    let due = 0, tc = 0;
+    for (const L of leads) { const q = queueOf(L); if (q === "due") due++; else if (q === "tocall") tc++; }
+    $("c-due").textContent = due;
+    $("c-due").classList.toggle("alert", due > 0 && state.view !== "due");
+    $("c-tocall").textContent = tc;
+    return { due, tc };
   }
 
   function render() {
-    renderBoard();
-    renderRibbon();
-    renderSourceFilter();
-    if (!$("stats").hidden) renderStats();
-  }
-
-  /* ---------- Stats ---------- */
-
-  function monthStart() {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-  }
-
-  function barList(container, rows, fmt) {
-    if (!rows.length) {
-      container.innerHTML = `<div class="chart-empty">Nothing to show yet.</div>`;
-      return;
+    const c = counts();
+    $("filters").hidden = state.view === "dash";
+    $("dash").innerHTML = ""; $("list").innerHTML = "";
+    if (state.view === "dash") { renderDash(c); $("more").hidden = true; $("hint").textContent = ""; return; }
+    const f = filtered();
+    const slice = f.slice(0, state.shown);
+    if (!slice.length) {
+      $("list").innerHTML = '<div class="empty">' + (leads.length === 0
+        ? "No leads yet. Add one with + New, or turn on Sync to pull your data."
+        : state.view === "due" ? "No follow-ups due — nice work." :
+          state.view === "tocall" ? "Every lead has been contacted or scheduled." :
+          "Nothing matches these filters.") + "</div>";
     }
-    const max = Math.max(...rows.map((r) => r.amount));
-    container.innerHTML = rows.map((r) => `
-      <div class="bar-row" title="${esc(r.label)}: ${esc(fmt(r.amount))}">
-        <span class="bar-label">${r.swatch ? `<span class="swatch" style="background:${r.swatch}"></span>` : ""}${esc(r.label)}</span>
-        <div class="bar-track"><div class="bar-fill" style="width:${max ? Math.round((r.amount / max) * 100) : 0}%"></div></div>
-        <span class="bar-value">${esc(fmt(r.amount))}</span>
-      </div>`).join("");
+    for (const L of slice) $("list").appendChild(cardEl(L));
+    $("more").hidden = f.length <= state.shown;
+    $("hint").textContent = f.length > state.shown ? `Showing ${state.shown} of ${f.length.toLocaleString("en-IN")}` : "";
   }
 
-  function renderStats() {
-    const open = leads.filter((l) => OPEN_STAGES.includes(l.stage));
-    const openValue = open.reduce((s, l) => s + (Number(l.value) || 0), 0);
-    const wonMonth = leads
-      .filter((l) => l.stage === "won" && (l.wonAt || l.updatedAt || 0) >= monthStart())
-      .reduce((s, l) => s + (Number(l.value) || 0), 0);
-    const overdue = leads.filter((l) => dueState(l) === "overdue").length;
-
-    const tiles = [
-      { label: "Open pipeline", value: openValue ? money(openValue) : "₹0" },
-      { label: "Open leads", value: String(open.length) },
-      { label: "Won this month", value: wonMonth ? money(wonMonth) : "₹0" },
-      { label: "Overdue follow-ups", value: String(overdue), alert: overdue > 0 },
-    ];
-    $("stat-tiles").innerHTML = tiles.map((t) => `
-      <div class="tile${t.alert ? " alert" : ""}">
-        <div class="tile-label">${t.label}</div>
-        <div class="tile-value">${t.value}</div>
-      </div>`).join("");
-
-    const stageRows = STAGES.map((s) => ({
-      label: s.label,
-      swatch: s.color,
-      amount: leads.filter((l) => l.stage === s.id).reduce((sum, l) => sum + (Number(l.value) || 0), 0),
-    })).filter((r) => r.amount > 0);
-    barList($("chart-stages"), stageRows, money);
-
-    const bySource = {};
-    for (const l of leads) {
-      const key = l.source || "No source";
-      bySource[key] = (bySource[key] || 0) + 1;
+  function renderDash(c) {
+    let sched = 0, won = 0;
+    const byStatus = {}, byZone = {};
+    for (const L of leads) {
+      const q = queueOf(L);
+      if (q === "sched") sched++;
+      byStatus[L.status] = (byStatus[L.status] || 0) + 1;
+      if (L.status === "Closed - Won") won++;
+      if (L.zone) byZone[L.zone] = (byZone[L.zone] || 0) + 1;
     }
-    const sourceRows = Object.entries(bySource)
-      .map(([label, amount]) => ({ label, amount }))
-      .sort((a, b) => b.amount - a.amount);
-    barList($("chart-sources"), sourceRows, (n) => `${n} lead${n === 1 ? "" : "s"}`);
-  }
+    const d = document.createElement("div");
+    let html = `<div class="tiles">
+      <button class="tile due" data-go="due"><div class="num">${c.due}</div><div class="lbl">Follow-ups due</div></button>
+      <button class="tile tocall" data-go="tocall"><div class="num">${c.tc}</div><div class="lbl">Still to contact</div></button>
+      <button class="tile" data-go="all"><div class="num">${sched}</div><div class="lbl">Scheduled ahead</div></button>
+      <button class="tile won"><div class="num">${won}</div><div class="lbl">Closed won</div></button>
+    </div>`;
 
-  function setView(view) {
-    const board = view === "board";
-    $("board").hidden = !board;
-    $("stats").hidden = board;
-    $("view-board").classList.toggle("active", board);
-    $("view-stats").classList.toggle("active", !board);
-    $("view-board").setAttribute("aria-selected", board);
-    $("view-stats").setAttribute("aria-selected", !board);
-    if (!board) renderStats();
-  }
-
-  function renderBoard() {
-    const filter = currentFilter();
-    board.innerHTML = "";
-
-    if (leads.length === 0) {
-      board.innerHTML = `
-        <div class="board-empty">
-          <h2>Your pipeline is empty</h2>
-          <p>Add your first lead and start moving it through the stages.</p>
-          <button class="btn btn-primary" id="empty-add">+ New lead</button>
-        </div>`;
-      $("empty-add").addEventListener("click", () => openPanel(null));
-      return;
+    const order = STATUSES.filter((s) => byStatus[s]);
+    const mx = Math.max(1, ...order.map((s) => byStatus[s]));
+    html += '<div class="dashsec"><h3>Pipeline by status</h3>';
+    for (const s of order) {
+      html += `<div class="barrow"><div class="k">${s}</div><div class="track"><div class="fill" style="width:${Math.round(byStatus[s] / mx * 100)}%"></div></div><div class="v">${byStatus[s]}</div></div>`;
     }
+    html += "</div>";
 
-    for (const stage of STAGES) {
-      const items = leads.filter((l) => l.stage === stage.id && filter(l));
-      const total = items.reduce((s, l) => s + (Number(l.value) || 0), 0);
-
-      const col = document.createElement("section");
-      col.className = "column";
-      col.dataset.stage = stage.id;
-      col.innerHTML = `
-        <div class="col-head">
-          <span class="swatch" style="background:${stage.color}"></span>
-          <h2>${stage.label}</h2>
-          <span class="count">${items.length}</span>
-          ${total ? `<span class="col-value">${money(total)}</span>` : ""}
-        </div>
-        <div class="col-body"></div>`;
-
-      const body = col.querySelector(".col-body");
-      if (items.length === 0) {
-        body.innerHTML = `<div class="col-empty">Drop a lead here</div>`;
+    const zrows = Object.entries(byZone).sort((a, b) => b[1] - a[1]);
+    if (zrows.length) {
+      const mz = Math.max(1, ...zrows.map((r) => r[1]));
+      html += '<div class="dashsec"><h3>Leads by zone</h3>';
+      for (const [z, n] of zrows) {
+        html += `<div class="barrow"><div class="k">${esc(z)}</div><div class="track"><div class="fill" style="width:${Math.round(n / mz * 100)}%"></div></div><div class="v">${n}</div></div>`;
       }
-      for (const lead of items) body.appendChild(cardEl(lead));
-
-      col.addEventListener("dragover", (e) => { e.preventDefault(); col.classList.add("drag-over"); });
-      col.addEventListener("dragleave", (e) => {
-        if (!col.contains(e.relatedTarget)) col.classList.remove("drag-over");
-      });
-      col.addEventListener("drop", (e) => {
-        e.preventDefault();
-        col.classList.remove("drag-over");
-        const lead = leads.find((l) => l.id === draggingId);
-        if (lead && lead.stage !== stage.id) {
-          lead.stage = stage.id;
-          lead.updatedAt = Date.now();
-          if (stage.id === "won") lead.wonAt = Date.now();
-          addNote(lead, `Moved to ${stage.label}`);
-          save();
-          render();
-        }
-      });
-
-      board.appendChild(col);
+      html += "</div>";
     }
+
+    html += `<div class="dashsec"><h3>Your data</h3><div class="dash-note">${leads.length.toLocaleString("en-IN")} leads. Everything saves to this device instantly and syncs to your private GitHub repo${syncCfg ? "" : " — sync is OFF, tap Sync in the header to connect"}. Use Data → Export for extra backups.</div></div>`;
+
+    d.innerHTML = html;
+    $("dash").appendChild(d);
+    d.querySelectorAll(".tile[data-go]").forEach((t) => t.addEventListener("click", () => setView(t.dataset.go)));
   }
 
-  function cardEl(lead) {
-    const el = document.createElement("button");
-    el.className = "card";
-    el.draggable = true;
-    el.dataset.id = lead.id;
+  const svgWA = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M.06 24l1.68-6.15A11.9 11.9 0 1 1 12.05 24 11.9 11.9 0 0 1 6.2 22.5zM6.6 20.1l.37.22a9.86 9.86 0 0 0 5.08 1.39A9.9 9.9 0 1 0 2.15 12c0 1.9.54 3.7 1.5 5.25l.24.38-1 3.64zM17.5 14.3c-.24-.12-1.42-.7-1.64-.78s-.38-.12-.54.12-.62.78-.76.94-.28.18-.52.06a8.1 8.1 0 0 1-2.38-1.47 9 9 0 0 1-1.65-2.05c-.17-.3 0-.46.11-.6l.36-.46c.12-.16.16-.28.24-.46a.5.5 0 0 0-.02-.46c-.06-.12-.54-1.3-.74-1.78s-.4-.4-.54-.41h-.46a.9.9 0 0 0-.64.3 2.7 2.7 0 0 0-.84 2c0 1.18.86 2.32.98 2.48s1.7 2.6 4.12 3.64c.58.25 1.02.4 1.37.51.58.18 1.1.16 1.52.1.46-.07 1.42-.58 1.62-1.14s.2-1.04.14-1.14-.22-.16-.46-.28z"/></svg>';
+  const svgCall = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg>';
 
-    const state = dueState(lead);
-    let followHtml = "";
-    if (lead.followUp && OPEN_STAGES.includes(lead.stage)) {
-      const cls = state === "overdue" ? "overdue" : state === "due-today" ? "due-today" : "";
-      const label = state === "overdue"
-        ? `${daysOverdue(lead.followUp)}d overdue`
-        : state === "due-today" ? "today" : fmtDate(lead.followUp);
-      followHtml = `<span class="followup ${cls}">⏰ ${label}</span>`;
-    }
+  function touch(L) { L.updatedAt = Date.now(); }
 
-    el.innerHTML = `
-      <div class="name">${esc(lead.name)}</div>
-      ${lead.company ? `<div class="company">${esc(lead.company)}</div>` : ""}
-      <div class="meta">
-        ${lead.value ? `<span class="value">${money(Number(lead.value))}</span>` : ""}
-        ${lead.source ? `<span class="tag">${esc(lead.source)}</span>` : ""}
-        ${followHtml}
+  function cardEl(L) {
+    const q = queueOf(L);
+    const c = document.createElement("div");
+    c.className = "card" + (q === "done" ? " done" : "");
+    const badges =
+      `<span class="tag ${L.category === "R" ? "r" : "s"}">${L.category === "R" ? "Rental" : "Sale"}</span>` +
+      (L.urgency === "Hot" ? '<span class="tag hot">Hot</span>' : "") +
+      (L.repeat ? '<span class="tag rep">Repeat</span>' : "") +
+      (q === "due" ? '<span class="tag due">Due</span>' : q === "sched" ? `<span class="tag sched">${fmtD(L.followUp)}</span>` : "");
+    const wa = L.wa || ("91" + normPhone(L.phone));
+    c.innerHTML = `
+      <div class="top"><span class="name" role="button" tabindex="0">${esc(L.name) || "(no name)"}</span>${badges}</div>
+      <div class="req"><b>${esc((L.config ? L.config + " " : "") + (L.ptype || ""))}</b>${L.location ? " in <b>" + esc(L.location) + "</b>" : ""}${budgetStr(L) ? " · " + budgetStr(L) : ""}${L.phone ? " · " + esc(L.phone) : ""}</div>
+      <div class="metad">${L.leadDate ? "Enquired " + fmtD(L.leadDate) : ""}${L.email ? " · " + esc(L.email) : ""}</div>
+      <div class="acts">
+        <a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(waMsg(L))}">${svgWA} WhatsApp</a>
+        <a class="btn call" href="tel:${String(L.phone || "").replace(/[^0-9+]/g, "")}">${svgCall} Call</a>
       </div>
-      ${lead.requirements ? `<div class="req-preview">📋 ${esc(lead.requirements)}</div>` : ""}`;
+      <div class="track2">
+        <div class="fld"><label>Status</label><select data-f="status">${STATUSES.map((s) => `<option${L.status === s ? " selected" : ""}>${s}</option>`).join("")}</select></div>
+        <div class="fld"><label>Outcome</label><select data-f="outcome">${OUTCOMES.map((o) => `<option value="${o}"${(L.outcome || "") === o ? " selected" : ""}>${o || "—"}</option>`).join("")}</select></div>
+        <div class="fld"><label>Last called</label><input type="date" data-f="lastCalled" value="${L.lastCalled || ""}"></div>
+        <div class="fld"><label>Next follow-up</label><div class="nf-row"><input type="date" data-f="followUp" value="${L.followUp || ""}"><button class="cal-btn" data-cal title="Add to Google Calendar">📅</button></div></div>
+        <div class="fld full"><label>Quick set</label><div class="quick">
+          <button class="qbtn" data-q="called">Called today</button>
+          <button class="qbtn" data-q="d3">+3d</button>
+          <button class="qbtn" data-q="d7">+1w</button>
+          <button class="qbtn" data-q="d30">+1mo</button>
+          <button class="qbtn" data-q="clear">Clear</button>
+        </div></div>
+        <div class="fld full"><label>Requirements / notes</label><textarea data-f="requirements" placeholder="What they told you — budget flex, timeline, preferences…">${esc(L.requirements || "")}</textarea></div>
+      </div>`;
 
-    el.addEventListener("click", () => openPanel(lead.id));
-    el.addEventListener("dragstart", (e) => {
-      draggingId = lead.id;
-      el.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
+    c.querySelector(".name").addEventListener("click", () => openPanel(L.id));
+    c.querySelector(".name").addEventListener("keydown", (e) => { if (e.key === "Enter") openPanel(L.id); });
+
+    c.querySelectorAll("[data-f]").forEach((el) => {
+      const f = el.dataset.f;
+      const ev = el.tagName === "TEXTAREA" ? "change" : "change";
+      el.addEventListener(ev, () => {
+        L[f] = el.value || (f === "followUp" ? null : "");
+        touch(L); save();
+        if (f === "status" || f === "followUp" || f === "lastCalled") refreshCard(L, c); else counts();
+      });
     });
-    el.addEventListener("dragend", () => {
-      draggingId = null;
-      el.classList.remove("dragging");
+
+    c.querySelector("[data-cal]").addEventListener("click", () => {
+      if (!L.followUp) { toast("Set a follow-up date first"); return; }
+      const start = L.followUp.replace(/-/g, "");
+      const d2 = new Date(L.followUp + "T00:00:00"); d2.setDate(d2.getDate() + 1);
+      const end = `${d2.getFullYear()}${String(d2.getMonth() + 1).padStart(2, "0")}${String(d2.getDate()).padStart(2, "0")}`;
+      const details = [L.phone, L.email, reqPhrase(L) + (budgetStr(L) ? " · " + budgetStr(L) : ""), L.requirements, "— Mindscape CRM"].filter(Boolean).join("\n");
+      window.open("https://calendar.google.com/calendar/render?action=TEMPLATE&text=" +
+        encodeURIComponent(`Follow up: ${L.name}`) + `&dates=${start}/${end}&details=` + encodeURIComponent(details), "_blank", "noopener");
     });
-    return el;
+
+    c.querySelectorAll("[data-q]").forEach((b) => b.addEventListener("click", () => {
+      const a = b.dataset.q;
+      if (a === "called") { L.lastCalled = todayStr(); if (L.status === "New") L.status = "Contacted"; L.attempts = (L.attempts || 0) + 1; }
+      if (a === "d3") L.followUp = addDays(3);
+      if (a === "d7") L.followUp = addDays(7);
+      if (a === "d30") L.followUp = addDays(30);
+      if (a === "clear") L.followUp = null;
+      if (["d3", "d7", "d30"].includes(a) && L.status === "New") L.status = "Follow-Up";
+      touch(L); save(); refreshCard(L, c);
+    }));
+
+    return c;
   }
 
-  function renderRibbon() {
-    const due = leads
-      .filter((l) => ["overdue", "due-today"].includes(dueState(l)))
-      .sort((a, b) => a.followUp.localeCompare(b.followUp));
+  function refreshCard(L, old) { old.replaceWith(cardEl(L)); counts(); }
 
-    const ribbon = $("today-ribbon");
-    if (due.length === 0) {
-      if (leads.length > 0) {
-        ribbon.hidden = false;
-        $("today-count").innerHTML = `All clear <em>— no follow-ups due today</em>`;
-        $("today-chips").innerHTML = "";
-      } else {
-        ribbon.hidden = true;
-      }
-      return;
-    }
-
-    ribbon.hidden = false;
-    $("today-count").innerHTML = `<em>${due.length}</em> follow-up${due.length > 1 ? "s" : ""} need${due.length > 1 ? "" : "s"} you`;
-    const chips = $("today-chips");
-    chips.innerHTML = "";
-    for (const lead of due) {
-      const state = dueState(lead);
-      const chip = document.createElement("button");
-      chip.className = "chip";
-      chip.innerHTML = `${esc(lead.name)}${lead.company ? " · " + esc(lead.company) : ""}
-        <span class="due-tag ${state}">${state === "overdue" ? daysOverdue(lead.followUp) + "d late" : "today"}</span>`;
-      chip.addEventListener("click", () => openPanel(lead.id));
-      chips.appendChild(chip);
-    }
-  }
-
-  function renderSourceFilter() {
-    const sources = [...new Set(leads.map((l) => l.source).filter(Boolean))].sort();
-    const sel = $("source-filter");
-    const current = sel.value;
-    sel.innerHTML = `<option value="">All sources</option>` +
-      sources.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
-    if (sources.includes(current)) sel.value = current;
-
-    $("source-options").innerHTML = sources.map((s) => `<option value="${esc(s)}">`).join("");
-  }
-
-  /* ---------- Panel ---------- */
+  /* ---------- Panel (full edit) ---------- */
 
   function openPanel(id) {
     editingId = id;
-    const lead = id ? leads.find((l) => l.id === id) : null;
-
-    $("panel-title").textContent = lead ? lead.name : "New lead";
-    $("f-name").value = lead?.name || "";
-    $("f-company").value = lead?.company || "";
-    $("f-email").value = lead?.email || "";
-    $("f-phone").value = lead?.phone || "";
-    $("f-source").value = lead?.source || "";
-    $("f-value").value = lead?.value ?? "";
-    $("f-followup").value = lead?.followUp || "";
-    $("f-req").value = lead?.requirements || "";
-    $("add-to-calendar").hidden = !$("f-followup").value;
-
-    const stageSel = $("f-stage");
-    stageSel.innerHTML = STAGES.map((s) => `<option value="${s.id}">${s.label}</option>`).join("");
-    stageSel.value = lead?.stage || "new";
-
-    $("delete-lead").hidden = !lead;
-    $("notes-section").hidden = !lead;
-    if (lead) renderNotes(lead);
-
+    const L = id ? leads.find((l) => l.id === id) : null;
+    $("panel-title").textContent = L ? L.name : "New lead";
+    $("p-name").value = L?.name || "";
+    $("p-phone").value = L?.phone || "";
+    $("p-email").value = L?.email || "";
+    $("p-cat").value = L?.category || "R";
+    $("p-config").value = L?.config || "";
+    $("p-ptype").value = L?.ptype || "";
+    $("p-budget").value = L?.budget || "";
+    $("p-location").value = L?.location || "";
+    $("p-zone").value = L?.zone || "";
+    const ssel = $("p-status");
+    ssel.innerHTML = STATUSES.map((s) => `<option>${s}</option>`).join("");
+    ssel.value = L?.status || "New";
+    $("p-urgency").value = L?.urgency || "";
+    $("p-leaddate").value = L?.leadDate || todayStr();
+    $("p-followup").value = L?.followUp || "";
+    $("p-req").value = L?.requirements || "";
+    $("delete-lead").hidden = !L;
+    $("notes-section").hidden = !L;
+    if (L) renderNotes(L);
     $("overlay").classList.add("open");
     $("panel").classList.add("open");
-    $("f-name").focus();
+    $("p-name").focus();
   }
 
   function closePanel() {
@@ -1310,67 +796,55 @@
     editingId = null;
   }
 
-  function renderNotes(lead) {
+  function renderNotes(L) {
     const list = $("note-list");
-    const notes = (lead.notes || []).slice().reverse();
-    if (notes.length === 0) {
-      list.innerHTML = `<li style="border:none;padding-left:0" class="note-empty">No notes yet — log your first touchpoint.</li>`;
-      return;
-    }
-    list.innerHTML = notes.map((n) => `
-      <li>
-        <span class="note-ts">${new Date(n.ts).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
-        <span class="note-text">${esc(n.text)}</span>
-      </li>`).join("");
+    const notes = (L.notes || []).slice().reverse();
+    list.innerHTML = notes.length ? notes.map((n) => `
+      <li><span class="note-ts">${new Date(n.ts).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span>
+      <span class="note-text">${esc(n.text)}</span></li>`).join("")
+      : '<li style="border:none;padding-left:0" class="dash-note">No activity logged yet.</li>';
   }
 
-  function addNote(lead, text) {
-    lead.notes = lead.notes || [];
-    lead.notes.push({ ts: Date.now(), text });
-  }
-
-  function saveLead() {
-    const name = $("f-name").value.trim();
-    if (!name) { $("f-name").focus(); return; }
-
+  function savePanel() {
+    const name = $("p-name").value.trim();
+    if (!name) { $("p-name").focus(); return; }
     const data = {
       name,
-      company: $("f-company").value.trim(),
-      email: $("f-email").value.trim(),
-      phone: $("f-phone").value.trim(),
-      source: $("f-source").value.trim(),
-      value: $("f-value").value ? Number($("f-value").value) : null,
-      stage: $("f-stage").value,
-      followUp: $("f-followup").value || null,
-      requirements: $("f-req").value.trim(),
+      phone: $("p-phone").value.trim(),
+      email: $("p-email").value.trim(),
+      category: $("p-cat").value,
+      config: $("p-config").value.trim(),
+      ptype: $("p-ptype").value.trim(),
+      budget: $("p-budget").value ? Number($("p-budget").value) : 0,
+      location: $("p-location").value.trim(),
+      zone: $("p-zone").value.trim(),
+      status: $("p-status").value,
+      urgency: $("p-urgency").value,
+      leadDate: $("p-leaddate").value || todayStr(),
+      followUp: $("p-followup").value || null,
+      requirements: $("p-req").value.trim(),
       updatedAt: Date.now(),
     };
-
+    data.wa = data.phone.startsWith("+") ? data.phone.replace(/\D/g, "") : "91" + normPhone(data.phone);
     if (editingId) {
-      const lead = leads.find((l) => l.id === editingId);
-      if (data.stage === "won" && lead.stage !== "won") data.wonAt = Date.now();
-      Object.assign(lead, data);
+      const L = leads.find((l) => l.id === editingId);
+      if (data.status === "Closed - Won" && L.status !== "Closed - Won") data.wonAt = Date.now();
+      Object.assign(L, data);
       toast("Lead updated");
     } else {
-      if (data.stage === "won") data.wonAt = Date.now();
-      leads.push({ id: uid(), createdAt: Date.now(), notes: [], ...data });
+      leads.unshift({ id: uid(), createdAt: Date.now(), notes: [], attempts: 0, lastCalled: "", outcome: "", repeat: false, source: "Manual", ...data });
       toast("Lead added");
     }
-    save();
-    render();
-    closePanel();
+    save(); fillFilters(); render(); closePanel();
   }
 
   function deleteLead() {
-    const lead = leads.find((l) => l.id === editingId);
-    if (!lead) return;
-    if (!confirm(`Delete ${lead.name}? This can't be undone.`)) return;
+    const L = leads.find((l) => l.id === editingId);
+    if (!L) return;
+    if (!confirm(`Delete ${L.name}? This can't be undone.`)) return;
     tombstones[editingId] = Date.now();
     leads = leads.filter((l) => l.id !== editingId);
-    save();
-    render();
-    closePanel();
-    toast("Lead deleted");
+    save(); render(); closePanel(); toast("Lead deleted");
   }
 
   /* ---------- Export / import ---------- */
@@ -1380,22 +854,21 @@
     a.href = URL.createObjectURL(new Blob([text], { type }));
     a.download = filename;
     a.click();
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
   function exportCSV() {
-    const cols = ["name", "company", "email", "phone", "source", "value", "stage", "followUp", "requirements"];
-    const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const cols = ["id", "name", "phone", "email", "category", "config", "ptype", "location", "zone",
+      "budget", "leadDate", "status", "urgency", "outcome", "lastCalled", "followUp", "attempts", "requirements"];
+    const cell = (v) => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
     const rows = [cols.join(",")];
-    for (const l of leads) {
-      rows.push(cols.map((c) => csvCell(c === "stage" ? (STAGES.find((s) => s.id === l.stage)?.label || l.stage) : l[c])).join(","));
-    }
+    for (const L of leads) rows.push(cols.map((c) => cell(c === "category" ? (L.category === "R" ? "Rental" : "Sale") : c === "requirements" ? (L.requirements || "").replace(/\n/g, " ") : L[c])).join(","));
     download(`mindscape-leads-${todayStr()}.csv`, rows.join("\n"), "text/csv");
     toast("CSV exported");
   }
 
   function exportJSON() {
-    download(`mindscape-backup-${todayStr()}.json`, JSON.stringify(leads, null, 2), "application/json");
+    download(`mindscape-backup-${todayStr()}.json`, JSON.stringify({ version: 2, leads, tombstones }), "application/json");
     toast("Backup exported");
   }
 
@@ -1403,161 +876,111 @@
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const parsed = JSON.parse(reader.result);
-        const data = Array.isArray(parsed) ? parsed
-          : Array.isArray(parsed?.leads) ? parsed.leads : null;
-        if (!data) throw new Error();
+        const data = JSON.parse(reader.result);
+        const arr = Array.isArray(data) ? data : data.leads;
+        if (!Array.isArray(arr)) throw new Error();
         const existing = new Set(leads.map((l) => l.id));
         let added = 0;
-        for (const l of data) {
-          if (l && l.id && !existing.has(l.id) && l.name) { leads.push(l); added++; }
-        }
-        save();
-        render();
+        for (const l of arr) if (l && l.id && l.name && !existing.has(l.id)) { leads.push(v2ify(l)); added++; }
+        save(); fillFilters(); render();
         toast(added ? `Imported ${added} lead${added > 1 ? "s" : ""}` : "Nothing new to import");
-      } catch {
-        toast("That file isn't a Mindscape backup");
-      }
+      } catch { toast("That file isn't a Mindscape backup"); }
     };
     reader.readAsText(file);
   }
 
-  // RFC-4180-style CSV parser: quoted fields, escaped quotes, newlines in quotes.
-  function parseCSV(text) {
-    const rows = [];
-    let row = [], field = "", inQuotes = false;
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (inQuotes) {
-        if (c === '"') {
-          if (text[i + 1] === '"') { field += '"'; i++; }
-          else inQuotes = false;
-        } else field += c;
-      } else if (c === '"') {
-        inQuotes = true;
-      } else if (c === ",") {
-        row.push(field); field = "";
-      } else if (c === "\n" || c === "\r") {
-        if (c === "\r" && text[i + 1] === "\n") i++;
-        row.push(field); field = "";
-        if (row.length > 1 || row[0] !== "") rows.push(row);
-        row = [];
-      } else field += c;
-    }
-    row.push(field);
-    if (row.length > 1 || row[0] !== "") rows.push(row);
-    return rows;
+  // map a v1-format lead (generic CRM) to v2
+  function v2ify(l) {
+    if (l.category) return l;
+    const stageMap = { new: "New", contacted: "Contacted", qualified: "Follow-Up", won: "Closed - Won", lost: "Closed - Lost" };
+    return {
+      id: l.id, createdAt: l.createdAt || Date.now(), updatedAt: l.updatedAt || Date.now(),
+      name: l.name || "", phone: l.phone || "", wa: "91" + normPhone(l.phone || ""),
+      email: l.email || "", category: (l.value || 0) >= 1000000 ? "S" : "R",
+      config: "", ptype: "", location: l.company || "", zone: "",
+      budget: l.value || 0, leadDate: "", repeat: false, source: l.source || "Import",
+      status: stageMap[l.stage] || "New", outcome: "", urgency: "",
+      lastCalled: "", followUp: l.followUp || null, attempts: 0,
+      requirements: l.requirements || "", notes: l.notes || [],
+    };
   }
 
-  function parseCSVDate(s) {
-    s = s.trim();
-    if (!s) return null;
-    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);          // 2026-08-14
-    if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
-    m = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);        // 14/08/2026 (day first)
-    if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
-    return null;
-  }
-
-  function importCSV(file) {
+  function importOldHTML(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      const rows = parseCSV(String(reader.result));
-      if (rows.length < 2) { toast("That CSV has no data rows"); return; }
-
-      const norm = (h) => h.toLowerCase().replace(/[^a-z]/g, "");
-      const ALIASES = {
-        name: "name", fullname: "name", lead: "name", contact: "name",
-        company: "company", organisation: "company", organization: "company", business: "company",
-        email: "email", emailaddress: "email",
-        phone: "phone", mobile: "phone", phonenumber: "phone", contactnumber: "phone",
-        source: "source", leadsource: "source", channel: "source",
-        value: "value", dealvalue: "value", amount: "value", budget: "value",
-        stage: "stage", status: "stage", pipeline: "stage",
-        followup: "followUp", nextfollowup: "followUp", followupdate: "followUp", nextfollowupdate: "followUp",
-        requirements: "requirements", requirement: "requirements", clientrequirements: "requirements", needs: "requirements", brief: "requirements",
-      };
-      const cols = rows[0].map((h) => ALIASES[norm(h)] || null);
-      if (!cols.includes("name")) {
-        toast('CSV needs a "name" column — export a CSV from here to see the format');
-        return;
-      }
-
-      const stageByLabel = {};
-      for (const s of STAGES) { stageByLabel[s.id] = s.id; stageByLabel[s.label.toLowerCase()] = s.id; }
-
-      const dupeKey = (l) => [l.name, l.email, l.company].map((v) => (v || "").trim().toLowerCase()).join("|");
-      const existing = new Set(leads.map(dupeKey));
-
-      let added = 0, skipped = 0;
-      for (const row of rows.slice(1)) {
-        const rec = {};
-        cols.forEach((key, i) => { if (key && row[i] !== undefined) rec[key] = row[i].trim(); });
-        if (!rec.name) { skipped++; continue; }
-
-        const lead = {
-          id: uid(),
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          name: rec.name,
-          company: rec.company || "",
-          email: rec.email || "",
-          phone: rec.phone || "",
-          source: rec.source || "",
-          value: rec.value ? Number(rec.value.replace(/[^0-9.]/g, "")) || null : null,
-          stage: stageByLabel[(rec.stage || "").toLowerCase()] || "new",
-          followUp: parseCSVDate(rec.followUp || ""),
-          requirements: rec.requirements || "",
-          notes: [],
-        };
-        if (existing.has(dupeKey(lead))) { skipped++; continue; }
-        existing.add(dupeKey(lead));
-        leads.push(lead);
+      const m = String(reader.result).match(/const LEADS = (\[[\s\S]*?\]);/);
+      if (!m) { toast("Couldn't find lead data in that file"); return; }
+      let arr;
+      try { arr = JSON.parse(m[1]); } catch { toast("Couldn't read the lead data"); return; }
+      const existing = new Set(leads.map((l) => l.id));
+      let added = 0;
+      for (const o of arr) {
+        if (!o.id || existing.has(o.id)) continue;
+        leads.push({
+          id: o.id, createdAt: Date.now(), updatedAt: Date.now(),
+          name: o.n || "", phone: o.p || "", wa: o.wa || "", email: "",
+          category: o.c || "R", config: o.cf || "", ptype: o.t || "",
+          location: o.l || "", zone: o.z || "", budget: o.b || 0,
+          leadDate: o.d || "", repeat: !!o.re, source: "Portal",
+          status: "New", outcome: "", urgency: "", lastCalled: "", followUp: null,
+          attempts: 0, requirements: "", notes: [],
+        });
         added++;
       }
+      save(); fillFilters(); render();
+      toast(added ? `Imported ${added} leads from old CRM` : "All those leads are already here");
+    };
+    reader.readAsText(file);
+  }
 
-      save();
-      render();
-      toast(added
-        ? `Imported ${added} lead${added > 1 ? "s" : ""}${skipped ? `, skipped ${skipped}` : ""}`
-        : "Nothing new to import" + (skipped ? ` — ${skipped} duplicate or blank rows` : ""));
+  function importOldTracking(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const T = JSON.parse(reader.result);
+        let applied = 0;
+        for (const L of leads) {
+          const t = T[L.id];
+          if (!t) continue;
+          if (t.st && STATUSES.includes(t.st) && L.status === "New") L.status = t.st;
+          if (t.oc && !L.outcome) L.outcome = t.oc;
+          if (t.lc && !L.lastCalled) L.lastCalled = t.lc;
+          if (t.nf && !L.followUp) L.followUp = t.nf;
+          if (t.at) L.attempts = Math.max(L.attempts || 0, t.at);
+          if (t.rq && !(L.requirements || "").includes(t.rq)) L.requirements = (L.requirements ? L.requirements + "\n" : "") + t.rq;
+          touch(L); applied++;
+        }
+        save(); render();
+        toast(applied ? `Tracking applied to ${applied} leads` : "No matching leads found");
+      } catch { toast("Couldn't read that file"); }
     };
     reader.readAsText(file);
   }
 
   /* ---------- GitHub sync ---------- */
 
-  let syncTimer = null;
-  let syncing = false;
-  let syncQueued = false;
+  let syncTimer = null, syncing = false, syncQueued = false;
 
   function b64encode(str) {
     const bytes = new TextEncoder().encode(str);
     let bin = "";
-    for (let i = 0; i < bytes.length; i += 0x8000) {
-      bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-    }
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     return btoa(bin);
   }
-
   function b64decode(b64) {
     const bin = atob(b64.replace(/\s/g, ""));
-    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-    return new TextDecoder().decode(bytes);
+    return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
   }
 
   function leadTime(l) { return l.updatedAt || l.createdAt || 0; }
 
-  // Merge remote state into local: newest edit wins per lead; a tombstone
-  // beats any older edit so deleted leads don't come back.
   function mergeRemote(remote) {
-    const rTombs = remote?.tombstones || {};
-    const tombs = { ...rTombs };
-    for (const [id, ts] of Object.entries(tombstones)) {
-      tombs[id] = Math.max(ts, tombs[id] || 0);
-    }
+    let rLeads = remote?.leads || [];
+    if (remote && remote.version !== 2) rLeads = rLeads.map(v2ify);
+    const tombs = { ...(remote?.tombstones || {}) };
+    for (const [id, ts] of Object.entries(tombstones)) tombs[id] = Math.max(ts, tombs[id] || 0);
     const byId = new Map();
-    for (const l of [...(remote?.leads || []), ...leads]) {
+    for (const l of [...rLeads, ...leads]) {
       if (!l || !l.id) continue;
       const prev = byId.get(l.id);
       if (!prev || leadTime(l) >= leadTime(prev)) byId.set(l.id, l);
@@ -1566,23 +989,20 @@
     return { leads: mergedLeads, tombstones: tombs };
   }
 
-  function serialize() {
-    return JSON.stringify({ version: 1, leads, tombstones }, null, 2);
-  }
+  function serialize() { return JSON.stringify({ version: 2, leads, tombstones }); }
 
-  function setSyncStatus(state, msg) {
-    const dot = $("sync-dot");
-    dot.className = "sync-dot" + (state ? " " + state : "");
+  function setSyncStatus(stateName, msg) {
+    $("sync-dot").className = "sync-dot" + (stateName ? " " + stateName : "");
     $("sync-btn").title = msg || "Sync across devices";
     const box = $("sync-msg");
     box.textContent = msg || "";
-    box.classList.toggle("error", state === "error");
+    box.classList.toggle("error", stateName === "error");
   }
 
   function scheduleSync() {
     if (!syncCfg) return;
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(syncNow, 2000);
+    syncTimer = setTimeout(syncNow, 12000);   // coalesce bursts of edits into one push
   }
 
   async function syncNow(attempt = 0) {
@@ -1590,13 +1010,8 @@
     if (syncing) { syncQueued = true; return; }
     syncing = true;
     setSyncStatus("syncing", "Syncing…");
-
     const url = `https://api.github.com/repos/${syncCfg.repo}/contents/${SYNC_FILE}`;
-    const headers = {
-      "Authorization": "Bearer " + syncCfg.token,
-      "Accept": "application/vnd.github+json",
-    };
-
+    const headers = { "Authorization": "Bearer " + syncCfg.token, "Accept": "application/vnd.github+json" };
     try {
       let remote = null, sha = null;
       const res = await fetch(url, { headers, cache: "no-store" });
@@ -1609,35 +1024,20 @@
       } else if (res.status !== 404) {
         throw new Error("GitHub returned " + res.status);
       }
-
       const merged = mergeRemote(remote);
-      leads = merged.leads;
-      tombstones = merged.tombstones;
-      persistLocal();
-      render();
-      if (editingId && !leads.find((l) => l.id === editingId)) closePanel();
-
+      leads = merged.leads; tombstones = merged.tombstones;
+      persistLocal(); fillFilters(); render();
       const body = serialize();
-      const remoteBody = remote ? JSON.stringify({ version: 1, leads: remote.leads || [], tombstones: remote.tombstones || {} }, null, 2) : null;
+      const remoteBody = remote && remote.version === 2 ? JSON.stringify({ version: 2, leads: remote.leads, tombstones: remote.tombstones || {} }) : null;
       if (body !== remoteBody) {
         const put = await fetch(url, {
-          method: "PUT",
-          headers,
-          body: JSON.stringify({
-            message: "Sync leads from Mindscape",
-            content: b64encode(body),
-            ...(sha ? { sha } : {}),
-          }),
+          method: "PUT", headers,
+          body: JSON.stringify({ message: "Sync leads from Mindscape", content: b64encode(body), ...(sha ? { sha } : {}) }),
         });
-        if ((put.status === 409 || put.status === 422) && attempt < 2) {
-          syncing = false;
-          return syncNow(attempt + 1);   // someone else pushed first — re-pull and retry
-        }
+        if ((put.status === 409 || put.status === 422) && attempt < 2) { syncing = false; return syncNow(attempt + 1); }
         if (!put.ok) throw new Error("GitHub returned " + put.status);
       }
-
-      const at = new Date().toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
-      setSyncStatus("ok", "Synced at " + at);
+      setSyncStatus("ok", "Synced at " + new Date().toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" }));
     } catch (e) {
       setSyncStatus("error", e.message || "Sync failed — will retry on next change.");
     } finally {
@@ -1646,6 +1046,10 @@
     }
   }
 
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden" && syncTimer) { clearTimeout(syncTimer); syncNow(); }
+  });
+
   function openSyncModal() {
     $("s-repo").value = syncCfg?.repo || "mauryagovind045-star/mindscape-data";
     $("s-token").value = syncCfg?.token || "";
@@ -1653,37 +1057,7 @@
     $("sync-backdrop").hidden = false;
     $("s-token").focus();
   }
-
   function closeSyncModal() { $("sync-backdrop").hidden = true; }
-
-  $("sync-btn").addEventListener("click", openSyncModal);
-  $("sync-cancel").addEventListener("click", closeSyncModal);
-  $("sync-backdrop").addEventListener("click", (e) => {
-    if (e.target === $("sync-backdrop")) closeSyncModal();
-  });
-
-  $("sync-save").addEventListener("click", async () => {
-    const repo = $("s-repo").value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, "");
-    const token = $("s-token").value.trim();
-    if (!repo || !repo.includes("/")) { $("s-repo").focus(); return; }
-    if (!token) { $("s-token").focus(); return; }
-    syncCfg = { repo, token };
-    localStorage.setItem(SYNC_KEY, JSON.stringify(syncCfg));
-    $("sync-disconnect").hidden = false;
-    await syncNow();
-    if (!$("sync-msg").classList.contains("error")) {
-      closeSyncModal();
-      toast("Sync is on");
-    }
-  });
-
-  $("sync-disconnect").addEventListener("click", () => {
-    syncCfg = null;
-    localStorage.removeItem(SYNC_KEY);
-    setSyncStatus("", "");
-    closeSyncModal();
-    toast("Sync turned off — your leads stay in this browser");
-  });
 
   /* ---------- Toast ---------- */
 
@@ -1698,64 +1072,44 @@
 
   /* ---------- Wiring ---------- */
 
-  $("view-board").addEventListener("click", () => setView("board"));
-  $("view-stats").addEventListener("click", () => setView("stats"));
+  function setView(v) {
+    state.view = v; state.shown = 30;
+    [...$("tabs").children].forEach((b) => b.setAttribute("aria-selected", String(b.dataset.v === v)));
+    render();
+    window.scrollTo({ top: 0 });
+  }
 
-  $("f-followup").addEventListener("input", () => {
-    $("add-to-calendar").hidden = !$("f-followup").value;
-  });
-
-  $("add-to-calendar").addEventListener("click", () => {
-    const date = $("f-followup").value;
-    if (!date) return;
-    const name = $("f-name").value.trim() || "lead";
-    const company = $("f-company").value.trim();
-    const start = date.replace(/-/g, "");
-    const d = new Date(date + "T00:00:00");
-    d.setDate(d.getDate() + 1);
-    const end = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-    const details = [
-      $("f-phone").value.trim(), $("f-email").value.trim(), $("f-req").value.trim(),
-      "— Mindscape CRM",
-    ].filter(Boolean).join("\n");
-    const url = "https://calendar.google.com/calendar/render?action=TEMPLATE" +
-      "&text=" + encodeURIComponent(`Follow up: ${name}${company ? " · " + company : ""}`) +
-      "&dates=" + start + "/" + end +
-      "&details=" + encodeURIComponent(details);
-    window.open(url, "_blank", "noopener");
-  });
+  $("tabs").addEventListener("click", (e) => { const b = e.target.closest(".tab"); if (b) setView(b.dataset.v); });
+  $("q").addEventListener("input", (e) => { state.q = e.target.value; state.shown = 30; render(); });
+  $("fcat").addEventListener("change", (e) => { state.cat = e.target.value; state.shown = 30; render(); });
+  $("fzone").addEventListener("change", (e) => { state.zone = e.target.value; state.shown = 30; render(); });
+  $("fstatus").addEventListener("change", (e) => { state.status = e.target.value; state.shown = 30; render(); });
+  $("fmonth").addEventListener("change", (e) => { state.month = e.target.value; state.shown = 30; render(); });
+  $("more").addEventListener("click", () => { state.shown += 30; render(); });
 
   $("new-lead-btn").addEventListener("click", () => openPanel(null));
   $("panel-close").addEventListener("click", closePanel);
   $("overlay").addEventListener("click", closePanel);
-  $("save-lead").addEventListener("click", saveLead);
+  $("save-lead").addEventListener("click", savePanel);
   $("delete-lead").addEventListener("click", deleteLead);
-  $("lead-form").addEventListener("submit", (e) => { e.preventDefault(); saveLead(); });
+  $("lead-form").addEventListener("submit", (e) => { e.preventDefault(); savePanel(); });
 
   $("note-add").addEventListener("click", () => {
     const input = $("note-input");
     const text = input.value.trim();
-    const lead = leads.find((l) => l.id === editingId);
-    if (!text || !lead) return;
-    addNote(lead, text);
-    lead.updatedAt = Date.now();
-    save();
-    input.value = "";
-    renderNotes(lead);
+    const L = leads.find((l) => l.id === editingId);
+    if (!text || !L) return;
+    L.notes = L.notes || [];
+    L.notes.push({ ts: Date.now(), text });
+    touch(L); save(); input.value = "";
+    renderNotes(L);
   });
-  $("note-input").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.preventDefault(); $("note-add").click(); }
-  });
+  $("note-input").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("note-add").click(); } });
 
-  $("search").addEventListener("input", renderBoard);
-  $("source-filter").addEventListener("change", renderBoard);
-
-  const menuBtn = $("data-menu-btn");
-  const menu = $("data-menu");
+  const menuBtn = $("data-menu-btn"), menu = $("data-menu");
   menuBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    const open = menu.classList.toggle("open");
-    menuBtn.setAttribute("aria-expanded", open);
+    menuBtn.setAttribute("aria-expanded", String(menu.classList.toggle("open")));
   });
   document.addEventListener("click", (e) => {
     if (!menu.contains(e.target)) { menu.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false"); }
@@ -1763,15 +1117,33 @@
 
   $("export-csv").addEventListener("click", exportCSV);
   $("export-json").addEventListener("click", exportJSON);
-  $("import-json").addEventListener("click", () => $("import-file").click());
-  $("import-file").addEventListener("change", (e) => {
-    if (e.target.files[0]) importJSON(e.target.files[0]);
-    e.target.value = "";
+  $("import-json").addEventListener("click", () => $("file-json").click());
+  $("file-json").addEventListener("change", (e) => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ""; });
+  $("import-old-html").addEventListener("click", () => $("file-html").click());
+  $("file-html").addEventListener("change", (e) => { if (e.target.files[0]) importOldHTML(e.target.files[0]); e.target.value = ""; });
+  $("import-old-track").addEventListener("click", () => $("file-track").click());
+  $("file-track").addEventListener("change", (e) => { if (e.target.files[0]) importOldTracking(e.target.files[0]); e.target.value = ""; });
+
+  $("sync-btn").addEventListener("click", openSyncModal);
+  $("sync-cancel").addEventListener("click", closeSyncModal);
+  $("sync-backdrop").addEventListener("click", (e) => { if (e.target === $("sync-backdrop")) closeSyncModal(); });
+  $("sync-save").addEventListener("click", async () => {
+    const repo = $("s-repo").value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, "");
+    const token = $("s-token").value.trim();
+    if (!repo || !repo.includes("/")) { $("s-repo").focus(); return; }
+    if (!token) { $("s-token").focus(); return; }
+    syncCfg = { repo, token };
+    localStorage.setItem(SYNC_KEY, JSON.stringify(syncCfg));
+    $("sync-disconnect").hidden = false;
+    await syncNow();
+    if (!$("sync-msg").classList.contains("error")) { closeSyncModal(); toast("Sync is on"); }
   });
-  $("import-csv").addEventListener("click", () => $("import-csv-file").click());
-  $("import-csv-file").addEventListener("change", (e) => {
-    if (e.target.files[0]) importCSV(e.target.files[0]);
-    e.target.value = "";
+  $("sync-disconnect").addEventListener("click", () => {
+    syncCfg = null;
+    localStorage.removeItem(SYNC_KEY);
+    setSyncStatus("", "");
+    closeSyncModal();
+    toast("Sync turned off — leads stay in this browser");
   });
 
   document.addEventListener("keydown", (e) => {
@@ -1781,6 +1153,14 @@
     }
   });
 
+  // one-time upgrade: carry over any leads created in the old generic version
+  const v1local = loadJSON("mindscape-crm-v1", null);
+  if (Array.isArray(v1local) && v1local.length && leads.length === 0) {
+    leads = v1local.map(v2ify);
+    persistLocal();
+  }
+
+  fillFilters();
   render();
   if (syncCfg) syncNow();
 
