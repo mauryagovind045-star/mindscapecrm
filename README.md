@@ -1,25 +1,17 @@
 # Mindscape CRM
 
-A personal CRM for tracking leads — a single HTML file, no build step, no server.
+A real-estate lead CRM for Mindscape Properties (Goa) — a single HTML file, no build step, no server. Live at https://mauryagovind045-star.github.io/mindscapecrm/ and installable on a phone as an app.
 
-**Features**
+**Built for the daily calling workflow**
 
-- Kanban pipeline: New → Contacted → Qualified → Won / Lost, with drag and drop
-- Contact details (email, phone, source, deal value) and a timestamped notes log per lead
-- Follow-up dates with a "Today" ribbon that surfaces overdue and due-today leads
-- Search by name/company, filter by source
-- Export to CSV, backup/restore via JSON
+- Work queues: **Due** (follow-ups due today or overdue), **To Contact** (new leads never called), and All Leads
+- One-tap **WhatsApp** with a prefilled intro message built from the lead's enquiry (config, property type, location, budget) and **Call**
+- Inline tracking on every card: status (New → Contacted → Follow-Up → Site Visit Scheduled/Done → Negotiation → Closed Won/Lost, Not Reachable, Junk), outcome, urgency, last called, next follow-up
+- Quick-set chips: Called today, +3d / +1w / +1mo follow-up
+- Rental vs Sale with Indian budget formatting (₹/month, ₹ Lac, ₹ Cr), BHK config, property type, location and Goa zone
+- Dashboard: due/to-contact/scheduled/won tiles, pipeline-by-status and leads-by-zone charts
+- Google Calendar button on every follow-up date
 
 **Data**
 
-All data is stored in your browser's localStorage. Use **Data → Export JSON backup** regularly; importing a backup merges leads without duplicating them.
-
-**Sync across devices**
-
-The **Sync** button connects the app to a private GitHub repository (e.g. `mindscape-data`), where leads are stored as `leads.json`. Every device configured with the same repo and token stays in sync — changes push automatically a couple of seconds after each edit, and merge by newest-edit-wins with deletion tombstones.
-
-Setup on each device: create a fine-grained personal access token at github.com/settings/personal-access-tokens/new with access to only the data repo and **Contents: Read and write** permission, then paste it into Sync settings. Keep the data repo private — it holds your leads.
-
-**Run it**
-
-Open `index.html` in a browser, or visit the GitHub Pages URL for this repo.
+Leads live in localStorage and sync to a **private** GitHub repo (`leads.json`) via a fine-grained token — every device with the token stays in sync, merging by newest edit with deletion tombstones. Data menu offers CSV export, JSON backup/restore, and importers for the old standalone CRM HTML file and its tracking backups.
