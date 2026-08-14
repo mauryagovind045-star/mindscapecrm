@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mindscape CRM</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #221b41;
+    --ink-soft: #4a4368;
+    --muted: #7a748f;
+    --bg: #f4f2fa;
+    --surface: #ffffff;
+    --line: #e3dff0;
+    --line-strong: #cfc9e6;
+    --iris: #5348e0;
+    --iris-deep: #3d33c2;
+    --iris-soft: #eceafe;
+    --overdue: #d9480f;
+    --overdue-soft: #fdeee6;
+    --today: #b25e09;
+    --today-soft: #fdf3e3;
+    --won: #0c7a54;
+    --won-soft: #e2f5ec;
+    --lost: #8a8797;
+    --lost-soft: #efeef3;
+    --teal: #0b7285;
+    --teal-soft: #e2f2f5;
+    --amber: #b0530b;
+    --amber-soft: #fbf0e0;
+    --shadow: 0 1px 2px rgba(34, 27, 65, 0.06), 0 4px 16px rgba(34, 27, 65, 0.07);
+    --shadow-lift: 0 4px 8px rgba(34, 27, 65, 0.1), 0 12px 32px rgba(34, 27, 65, 0.14);
+    --radius: 10px;
+    --font-display: "Bricolage Grotesque", "Schibsted Grotesk", sans-serif;
+    --font-body: "Schibsted Grotesk", -apple-system, sans-serif;
+    --font-mono: "Spline Sans Mono", ui-monospace, monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+  }
+
+  button { font: inherit; cursor: pointer; color: inherit; background: none; border: none; }
+  input, select, textarea { font: inherit; color: var(--ink); }
+
+  :focus-visible {
+    outline: 2px solid var(--iris);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ---------- Header ---------- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-right: auto;
+  }
+
+  .brand h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+  }
+
+  .brand h1 .dot { color: var(--iris); }
+
+  .brand .tagline {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .search-wrap { position: relative; }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  #search {
+    width: 220px;
+    padding: 8px 12px 8px 32px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    background: var(--bg);
+  }
+
+  #search::placeholder { color: var(--muted); }
+
+  #source-filter {
+    padding: 8px 32px 8px 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    background: var(--bg);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a748f' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    cursor: pointer;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .btn:hover { background: var(--bg); }
+
+  .btn-primary {
+    background: var(--iris);
+    border-color: var(--iris);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: var(--iris-deep); border-color: var(--iris-deep); }
+
+  .menu-wrap { position: relative; }
+
+  .menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lift);
+    min-width: 190px;
+    padding: 6px;
+    z-index: 40;
+    display: none;
+  }
+
+  .menu.open { display: block; }
+
+  .menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+
+  .menu button:hover { background: var(--iris-soft); }
+
+  .menu .menu-note {
+    padding: 8px 10px 4px;
+    font-size: 11px;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    margin-top: 4px;
+  }
+
+  /* ---------- Today ribbon (signature) ---------- */
+  .today-ribbon {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 24px;
+    background: var(--ink);
+    color: #f2effc;
+    overflow-x: auto;
+  }
+
+  .today-ribbon.all-clear { background: var(--ink); }
+
+  .today-count {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 17px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .today-count em {
+    font-style: normal;
+    color: #b8b0f4;
+  }
+
+  .today-chips { display: flex; gap: 8px; }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #f2effc;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+
+  .chip:hover { background: rgba(255, 255, 255, 0.2); }
+
+  .chip .due-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 999px;
+  }
+
+  .chip .due-tag.overdue { background: var(--overdue); color: #fff; }
+  .chip .due-tag.due-today { background: #e8a33d; color: var(--ink); }
+
+  /* ---------- Board ---------- */
+  .board {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(240px, 1fr));
+    gap: 14px;
+    padding: 18px 24px 24px;
+    overflow-x: auto;
+    align-items: start;
+  }
+
+  .column {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    min-width: 240px;
+  }
+
+  .column.drag-over {
+    border-color: var(--iris);
+    background: var(--iris-soft);
+  }
+
+  .col-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 12px 14px 8px;
+  }
+
+  .col-head .swatch {
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  .col-head h2 {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .col-head .count {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .col-head .col-value {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  .col-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 10px 12px;
+    min-height: 60px;
+    overflow-y: auto;
+  }
+
+  .col-empty {
+    font-size: 12.5px;
+    color: var(--muted);
+    padding: 10px 6px;
+    text-align: center;
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 11px 12px;
+    box-shadow: var(--shadow);
+    cursor: grab;
+    text-align: left;
+    width: 100%;
+    display: block;
+    transition: box-shadow 0.15s, transform 0.15s;
+  }
+
+  .card:hover { box-shadow: var(--shadow-lift); transform: translateY(-1px); }
+
+  .card.dragging { opacity: 0.45; }
+
+  .card .name { font-weight: 700; font-size: 14px; }
+
+  .card .company { color: var(--ink-soft); font-size: 13px; }
+
+  .card .meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .card .value {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--lost-soft);
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+  }
+
+  .followup {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    color: var(--ink-soft);
+    background: var(--bg);
+  }
+
+  .followup.overdue { background: var(--overdue-soft); color: var(--overdue); font-weight: 600; }
+  .followup.due-today { background: var(--today-soft); color: var(--today); font-weight: 600; }
+
+  /* ---------- Slide-over panel ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(34, 27, 65, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 50;
+  }
+
+  .overlay.open { opacity: 1; pointer-events: auto; }
+
+  .panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(440px, 100vw);
+    background: var(--surface);
+    box-shadow: var(--shadow-lift);
+    transform: translateX(100%);
+    transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel.open { transform: translateX(0); }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px 0;
+  }
+
+  .panel-head h2 {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .panel-close {
+    padding: 6px;
+    border-radius: 6px;
+    color: var(--muted);
+    line-height: 0;
+  }
+
+  .panel-close:hover { background: var(--bg); color: var(--ink); }
+
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 22px 22px;
+  }
+
+  .field { margin-bottom: 13px; }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 8px 11px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  .field textarea { resize: vertical; min-height: 64px; }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .panel-actions {
+    display: flex;
+    gap: 10px;
+    padding: 14px 22px;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .panel-actions .btn-primary { flex: 1; justify-content: center; }
+
+  .btn-danger { color: var(--overdue); border-color: var(--line-strong); }
+  .btn-danger:hover { background: var(--overdue-soft); }
+
+  /* ---------- Notes timeline ---------- */
+  .notes-section { margin-top: 20px; }
+
+  .notes-section h3 {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .note-form { display: flex; gap: 8px; margin-bottom: 12px; }
+
+  .note-form input { flex: 1; padding: 8px 11px; border: 1px solid var(--line-strong); border-radius: 8px; }
+
+  .note-list { list-style: none; }
+
+  .note-list li {
+    position: relative;
+    padding: 0 0 14px 18px;
+    border-left: 2px solid var(--line);
+    margin-left: 5px;
+  }
+
+  .note-list li::before {
+    content: "";
+    position: absolute;
+    left: -5px;
+    top: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--iris);
+  }
+
+  .note-list li:last-child { padding-bottom: 2px; }
+
+  .note-list .note-ts {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--muted);
+    display: block;
+  }
+
+  .note-list .note-text { font-size: 13px; }
+
+  .note-empty { font-size: 13px; color: var(--muted); }
+
+  /* ---------- Empty board ---------- */
+  .board-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 70px 20px;
+  }
+
+  .board-empty h2 {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+
+  .board-empty p { color: var(--muted); margin-bottom: 18px; }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed;
+    bottom: 22px;
+    left: 50%;
+    transform: translate(-50%, 80px);
+    background: var(--ink);
+    color: #f2effc;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lift);
+    transition: transform 0.25s;
+    z-index: 80;
+  }
+
+  .toast.show { transform: translate(-50%, 0); }
+
+  /* ---------- Footer ---------- */
+  .foot {
+    padding: 10px 24px;
+    font-size: 11.5px;
+    color: var(--muted);
+    text-align: center;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  @media (max-width: 720px) {
+    .topbar { padding: 12px 14px; }
+    #search { width: 140px; }
+    .board { padding: 14px; grid-template-columns: repeat(5, 78vw); }
+    .today-ribbon { padding: 10px 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1>Mindscape<span class="dot">.</span></h1>
+    <span class="tagline">personal CRM</span>
+  </div>
+  <div class="search-wrap">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="search" type="search" placeholder="Search name or company" aria-label="Search leads">
+  </div>
+  <select id="source-filter" aria-label="Filter by source">
+    <option value="">All sources</option>
+  </select>
+  <div class="menu-wrap">
+    <button class="btn" id="data-menu-btn" aria-haspopup="true" aria-expanded="false">Data
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="menu" id="data-menu" role="menu">
+      <button id="export-csv">Export CSV</button>
+      <button id="export-json">Export JSON backup</button>
+      <button id="import-json">Import JSON backup</button>
+      <div class="menu-note">All data stays in this browser. Export a backup anytime.</div>
+    </div>
+  </div>
+  <button class="btn btn-primary" id="new-lead-btn">+ New lead</button>
+</header>
+
+<div class="today-ribbon" id="today-ribbon" hidden>
+  <span class="today-count" id="today-count"></span>
+  <div class="today-chips" id="today-chips"></div>
+</div>
+
+<main class="board" id="board" aria-label="Lead pipeline"></main>
+
+<footer class="foot">Mindscape · your leads never leave this browser · use Data → Export for backups</footer>
+
+<div class="overlay" id="overlay"></div>
+
+<aside class="panel" id="panel" aria-label="Lead details">
+  <div class="panel-head">
+    <h2 id="panel-title">New lead</h2>
+    <button class="panel-close" id="panel-close" aria-label="Close panel">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="panel-body">
+    <form id="lead-form">
+      <div class="field">
+        <label for="f-name">Name</label>
+        <input id="f-name" required placeholder="Asha Verma">
+      </div>
+      <div class="field">
+        <label for="f-company">Company</label>
+        <input id="f-company" placeholder="Verma Interiors">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-email">Email</label>
+          <input id="f-email" type="email" placeholder="asha@example.com">
+        </div>
+        <div class="field">
+          <label for="f-phone">Phone</label>
+          <input id="f-phone" placeholder="+91 98…">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-source">Source</label>
+          <input id="f-source" list="source-options" placeholder="Referral, Instagram…">
+          <datalist id="source-options"></datalist>
+        </div>
+        <div class="field">
+          <label for="f-value">Deal value (₹)</label>
+          <input id="f-value" type="number" min="0" step="any" placeholder="50000">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-stage">Stage</label>
+          <select id="f-stage"></select>
+        </div>
+        <div class="field">
+          <label for="f-followup">Next follow-up</label>
+          <input id="f-followup" type="date">
+        </div>
+      </div>
+    </form>
+
+    <section class="notes-section" id="notes-section" hidden>
+      <h3>Notes &amp; activity</h3>
+      <div class="note-form">
+        <input id="note-input" placeholder="Log a call, meeting or thought…" aria-label="New note">
+        <button class="btn" id="note-add">Add</button>
+      </div>
+      <ul class="note-list" id="note-list"></ul>
+    </section>
+  </div>
+  <div class="panel-actions">
+    <button class="btn btn-danger" id="delete-lead" hidden>Delete</button>
+    <button class="btn btn-primary" id="save-lead">Save lead</button>
+  </div>
+</aside>
+
+<div class="toast" id="toast" role="status"></div>
+<input type="file" id="import-file" accept="application/json" hidden>
+
+<script>
+(() => {
+  "use strict";
+
+  const STORE_KEY = "mindscape-crm-v1";
+  const STAGES = [
+    { id: "new",       label: "New",       color: "#5348e0" },
+    { id: "contacted", label: "Contacted", color: "#0b7285" },
+    { id: "qualified", label: "Qualified", color: "#b0530b" },
+    { id: "won",       label: "Won",       color: "#0c7a54" },
+    { id: "lost",      label: "Lost",      color: "#8a8797" },
+  ];
+  const OPEN_STAGES = ["new", "contacted", "qualified"];
+
+  const $ = (id) => document.getElementById(id);
+  const board = $("board");
+
+  let leads = load();
+  let editingId = null;   // null = creating a new lead
+  let draggingId = null;
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+
+  function save() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(leads));
+  }
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function dueState(lead) {
+    if (!lead.followUp || !OPEN_STAGES.includes(lead.stage)) return null;
+    const t = todayStr();
+    if (lead.followUp < t) return "overdue";
+    if (lead.followUp === t) return "due-today";
+    return "upcoming";
+  }
+
+  function daysOverdue(dateStr) {
+    const ms = new Date(todayStr()) - new Date(dateStr);
+    return Math.round(ms / 86400000);
+  }
+
+  const inr = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
+  function money(n) {
+    return n ? "₹" + inr.format(n) : "";
+  }
+
+  function fmtDate(dateStr) {
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  }
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  /* ---------- Rendering ---------- */
+
+  function currentFilter() {
+    const q = $("search").value.trim().toLowerCase();
+    const src = $("source-filter").value;
+    return (lead) => {
+      if (src && lead.source !== src) return false;
+      if (!q) return true;
+      return (lead.name || "").toLowerCase().includes(q) ||
+             (lead.company || "").toLowerCase().includes(q);
+    };
+  }
+
+  function render() {
+    renderBoard();
+    renderRibbon();
+    renderSourceFilter();
+  }
+
+  function renderBoard() {
+    const filter = currentFilter();
+    board.innerHTML = "";
+
+    if (leads.length === 0) {
+      board.innerHTML = `
+        <div class="board-empty">
+          <h2>Your pipeline is empty</h2>
+          <p>Add your first lead and start moving it through the stages.</p>
+          <button class="btn btn-primary" id="empty-add">+ New lead</button>
+        </div>`;
+      $("empty-add").addEventListener("click", () => openPanel(null));
+      return;
+    }
+
+    for (const stage of STAGES) {
+      const items = leads.filter((l) => l.stage === stage.id && filter(l));
+      const total = items.reduce((s, l) => s + (Number(l.value) || 0), 0);
+
+      const col = document.createElement("section");
+      col.className = "column";
+      col.dataset.stage = stage.id;
+      col.innerHTML = `
+        <div class="col-head">
+          <span class="swatch" style="background:${stage.color}"></span>
+          <h2>${stage.label}</h2>
+          <span class="count">${items.length}</span>
+          ${total ? `<span class="col-value">${money(total)}</span>` : ""}
+        </div>
+        <div class="col-body"></div>`;
+
+      const body = col.querySelector(".col-body");
+      if (items.length === 0) {
+        body.innerHTML = `<div class="col-empty">Drop a lead here</div>`;
+      }
+      for (const lead of items) body.appendChild(cardEl(lead));
+
+      col.addEventListener("dragover", (e) => { e.preventDefault(); col.classList.add("drag-over"); });
+      col.addEventListener("dragleave", (e) => {
+        if (!col.contains(e.relatedTarget)) col.classList.remove("drag-over");
+      });
+      col.addEventListener("drop", (e) => {
+        e.preventDefault();
+        col.classList.remove("drag-over");
+        const lead = leads.find((l) => l.id === draggingId);
+        if (lead && lead.stage !== stage.id) {
+          lead.stage = stage.id;
+          addNote(lead, `Moved to ${stage.label}`);
+          save();
+          render();
+        }
+      });
+
+      board.appendChild(col);
+    }
+  }
+
+  function cardEl(lead) {
+    const el = document.createElement("button");
+    el.className = "card";
+    el.draggable = true;
+    el.dataset.id = lead.id;
+
+    const state = dueState(lead);
+    let followHtml = "";
+    if (lead.followUp && OPEN_STAGES.includes(lead.stage)) {
+      const cls = state === "overdue" ? "overdue" : state === "due-today" ? "due-today" : "";
+      const label = state === "overdue"
+        ? `${daysOverdue(lead.followUp)}d overdue`
+        : state === "due-today" ? "today" : fmtDate(lead.followUp);
+      followHtml = `<span class="followup ${cls}">⏰ ${label}</span>`;
+    }
+
+    el.innerHTML = `
+      <div class="name">${esc(lead.name)}</div>
+      ${lead.company ? `<div class="company">${esc(lead.company)}</div>` : ""}
+      <div class="meta">
+        ${lead.value ? `<span class="value">${money(Number(lead.value))}</span>` : ""}
+        ${lead.source ? `<span class="tag">${esc(lead.source)}</span>` : ""}
+        ${followHtml}
+      </div>`;
+
+    el.addEventListener("click", () => openPanel(lead.id));
+    el.addEventListener("dragstart", (e) => {
+      draggingId = lead.id;
+      el.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    el.addEventListener("dragend", () => {
+      draggingId = null;
+      el.classList.remove("dragging");
+    });
+    return el;
+  }
+
+  function renderRibbon() {
+    const due = leads
+      .filter((l) => ["overdue", "due-today"].includes(dueState(l)))
+      .sort((a, b) => a.followUp.localeCompare(b.followUp));
+
+    const ribbon = $("today-ribbon");
+    if (due.length === 0) {
+      if (leads.length > 0) {
+        ribbon.hidden = false;
+        $("today-count").innerHTML = `All clear <em>— no follow-ups due today</em>`;
+        $("today-chips").innerHTML = "";
+      } else {
+        ribbon.hidden = true;
+      }
+      return;
+    }
+
+    ribbon.hidden = false;
+    $("today-count").innerHTML = `<em>${due.length}</em> follow-up${due.length > 1 ? "s" : ""} need${due.length > 1 ? "" : "s"} you`;
+    const chips = $("today-chips");
+    chips.innerHTML = "";
+    for (const lead of due) {
+      const state = dueState(lead);
+      const chip = document.createElement("button");
+      chip.className = "chip";
+      chip.innerHTML = `${esc(lead.name)}${lead.company ? " · " + esc(lead.company) : ""}
+        <span class="due-tag ${state}">${state === "overdue" ? daysOverdue(lead.followUp) + "d late" : "today"}</span>`;
+      chip.addEventListener("click", () => openPanel(lead.id));
+      chips.appendChild(chip);
+    }
+  }
+
+  function renderSourceFilter() {
+    const sources = [...new Set(leads.map((l) => l.source).filter(Boolean))].sort();
+    const sel = $("source-filter");
+    const current = sel.value;
+    sel.innerHTML = `<option value="">All sources</option>` +
+      sources.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
+    if (sources.includes(current)) sel.value = current;
+
+    $("source-options").innerHTML = sources.map((s) => `<option value="${esc(s)}">`).join("");
+  }
+
+  /* ---------- Panel ---------- */
+
+  function openPanel(id) {
+    editingId = id;
+    const lead = id ? leads.find((l) => l.id === id) : null;
+
+    $("panel-title").textContent = lead ? lead.name : "New lead";
+    $("f-name").value = lead?.name || "";
+    $("f-company").value = lead?.company || "";
+    $("f-email").value = lead?.email || "";
+    $("f-phone").value = lead?.phone || "";
+    $("f-source").value = lead?.source || "";
+    $("f-value").value = lead?.value ?? "";
+    $("f-followup").value = lead?.followUp || "";
+
+    const stageSel = $("f-stage");
+    stageSel.innerHTML = STAGES.map((s) => `<option value="${s.id}">${s.label}</option>`).join("");
+    stageSel.value = lead?.stage || "new";
+
+    $("delete-lead").hidden = !lead;
+    $("notes-section").hidden = !lead;
+    if (lead) renderNotes(lead);
+
+    $("overlay").classList.add("open");
+    $("panel").classList.add("open");
+    $("f-name").focus();
+  }
+
+  function closePanel() {
+    $("overlay").classList.remove("open");
+    $("panel").classList.remove("open");
+    editingId = null;
+  }
+
+  function renderNotes(lead) {
+    const list = $("note-list");
+    const notes = (lead.notes || []).slice().reverse();
+    if (notes.length === 0) {
+      list.innerHTML = `<li style="border:none;padding-left:0" class="note-empty">No notes yet — log your first touchpoint.</li>`;
+      return;
+    }
+    list.innerHTML = notes.map((n) => `
+      <li>
+        <span class="note-ts">${new Date(n.ts).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+        <span class="note-text">${esc(n.text)}</span>
+      </li>`).join("");
+  }
+
+  function addNote(lead, text) {
+    lead.notes = lead.notes || [];
+    lead.notes.push({ ts: Date.now(), text });
+  }
+
+  function saveLead() {
+    const name = $("f-name").value.trim();
+    if (!name) { $("f-name").focus(); return; }
+
+    const data = {
+      name,
+      company: $("f-company").value.trim(),
+      email: $("f-email").value.trim(),
+      phone: $("f-phone").value.trim(),
+      source: $("f-source").value.trim(),
+      value: $("f-value").value ? Number($("f-value").value) : null,
+      stage: $("f-stage").value,
+      followUp: $("f-followup").value || null,
+    };
+
+    if (editingId) {
+      const lead = leads.find((l) => l.id === editingId);
+      Object.assign(lead, data);
+      toast("Lead updated");
+    } else {
+      leads.push({ id: uid(), createdAt: Date.now(), notes: [], ...data });
+      toast("Lead added");
+    }
+    save();
+    render();
+    closePanel();
+  }
+
+  function deleteLead() {
+    const lead = leads.find((l) => l.id === editingId);
+    if (!lead) return;
+    if (!confirm(`Delete ${lead.name}? This can't be undone.`)) return;
+    leads = leads.filter((l) => l.id !== editingId);
+    save();
+    render();
+    closePanel();
+    toast("Lead deleted");
+  }
+
+  /* ---------- Export / import ---------- */
+
+  function download(filename, text, type) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function exportCSV() {
+    const cols = ["name", "company", "email", "phone", "source", "value", "stage", "followUp"];
+    const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [cols.join(",")];
+    for (const l of leads) {
+      rows.push(cols.map((c) => csvCell(c === "stage" ? (STAGES.find((s) => s.id === l.stage)?.label || l.stage) : l[c])).join(","));
+    }
+    download(`mindscape-leads-${todayStr()}.csv`, rows.join("\n"), "text/csv");
+    toast("CSV exported");
+  }
+
+  function exportJSON() {
+    download(`mindscape-backup-${todayStr()}.json`, JSON.stringify(leads, null, 2), "application/json");
+    toast("Backup exported");
+  }
+
+  function importJSON(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data)) throw new Error();
+        const existing = new Set(leads.map((l) => l.id));
+        let added = 0;
+        for (const l of data) {
+          if (l && l.id && !existing.has(l.id) && l.name) { leads.push(l); added++; }
+        }
+        save();
+        render();
+        toast(added ? `Imported ${added} lead${added > 1 ? "s" : ""}` : "Nothing new to import");
+      } catch {
+        toast("That file isn't a Mindscape backup");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  /* ---------- Toast ---------- */
+
+  let toastTimer;
+  function toast(msg) {
+    const el = $("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+  }
+
+  /* ---------- Wiring ---------- */
+
+  $("new-lead-btn").addEventListener("click", () => openPanel(null));
+  $("panel-close").addEventListener("click", closePanel);
+  $("overlay").addEventListener("click", closePanel);
+  $("save-lead").addEventListener("click", saveLead);
+  $("delete-lead").addEventListener("click", deleteLead);
+  $("lead-form").addEventListener("submit", (e) => { e.preventDefault(); saveLead(); });
+
+  $("note-add").addEventListener("click", () => {
+    const input = $("note-input");
+    const text = input.value.trim();
+    const lead = leads.find((l) => l.id === editingId);
+    if (!text || !lead) return;
+    addNote(lead, text);
+    save();
+    input.value = "";
+    renderNotes(lead);
+  });
+  $("note-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); $("note-add").click(); }
+  });
+
+  $("search").addEventListener("input", renderBoard);
+  $("source-filter").addEventListener("change", renderBoard);
+
+  const menuBtn = $("data-menu-btn");
+  const menu = $("data-menu");
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = menu.classList.toggle("open");
+    menuBtn.setAttribute("aria-expanded", open);
+  });
+  document.addEventListener("click", (e) => {
+    if (!menu.contains(e.target)) { menu.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false"); }
+  });
+
+  $("export-csv").addEventListener("click", exportCSV);
+  $("export-json").addEventListener("click", exportJSON);
+  $("import-json").addEventListener("click", () => $("import-file").click());
+  $("import-file").addEventListener("change", (e) => {
+    if (e.target.files[0]) importJSON(e.target.files[0]);
+    e.target.value = "";
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closePanel();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
