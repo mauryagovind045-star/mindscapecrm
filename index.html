@@ -674,6 +674,7 @@
       <button id="export-csv">Export CSV</button>
       <button id="export-json">Export JSON backup</button>
       <button id="import-json">Import JSON backup</button>
+      <button id="import-csv">Import CSV</button>
       <div class="menu-note">All data stays in this browser. Export a backup anytime.</div>
     </div>
   </div>
@@ -789,6 +790,7 @@
 
 <div class="toast" id="toast" role="status"></div>
 <input type="file" id="import-file" accept="application/json" hidden>
+<input type="file" id="import-csv-file" accept=".csv,text/csv" hidden>
 
 <script>
 (() => {
@@ -1171,6 +1173,107 @@
     reader.readAsText(file);
   }
 
+  // RFC-4180-style CSV parser: quoted fields, escaped quotes, newlines in quotes.
+  function parseCSV(text) {
+    const rows = [];
+    let row = [], field = "", inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; }
+          else inQuotes = false;
+        } else field += c;
+      } else if (c === '"') {
+        inQuotes = true;
+      } else if (c === ",") {
+        row.push(field); field = "";
+      } else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(field); field = "";
+        if (row.length > 1 || row[0] !== "") rows.push(row);
+        row = [];
+      } else field += c;
+    }
+    row.push(field);
+    if (row.length > 1 || row[0] !== "") rows.push(row);
+    return rows;
+  }
+
+  function parseCSVDate(s) {
+    s = s.trim();
+    if (!s) return null;
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);          // 2026-08-14
+    if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+    m = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);        // 14/08/2026 (day first)
+    if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+    return null;
+  }
+
+  function importCSV(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rows = parseCSV(String(reader.result));
+      if (rows.length < 2) { toast("That CSV has no data rows"); return; }
+
+      const norm = (h) => h.toLowerCase().replace(/[^a-z]/g, "");
+      const ALIASES = {
+        name: "name", fullname: "name", lead: "name", contact: "name",
+        company: "company", organisation: "company", organization: "company", business: "company",
+        email: "email", emailaddress: "email",
+        phone: "phone", mobile: "phone", phonenumber: "phone", contactnumber: "phone",
+        source: "source", leadsource: "source", channel: "source",
+        value: "value", dealvalue: "value", amount: "value", budget: "value",
+        stage: "stage", status: "stage", pipeline: "stage",
+        followup: "followUp", nextfollowup: "followUp", followupdate: "followUp", nextfollowupdate: "followUp",
+      };
+      const cols = rows[0].map((h) => ALIASES[norm(h)] || null);
+      if (!cols.includes("name")) {
+        toast('CSV needs a "name" column — export a CSV from here to see the format');
+        return;
+      }
+
+      const stageByLabel = {};
+      for (const s of STAGES) { stageByLabel[s.id] = s.id; stageByLabel[s.label.toLowerCase()] = s.id; }
+
+      const dupeKey = (l) => [l.name, l.email, l.company].map((v) => (v || "").trim().toLowerCase()).join("|");
+      const existing = new Set(leads.map(dupeKey));
+
+      let added = 0, skipped = 0;
+      for (const row of rows.slice(1)) {
+        const rec = {};
+        cols.forEach((key, i) => { if (key && row[i] !== undefined) rec[key] = row[i].trim(); });
+        if (!rec.name) { skipped++; continue; }
+
+        const lead = {
+          id: uid(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          name: rec.name,
+          company: rec.company || "",
+          email: rec.email || "",
+          phone: rec.phone || "",
+          source: rec.source || "",
+          value: rec.value ? Number(rec.value.replace(/[^0-9.]/g, "")) || null : null,
+          stage: stageByLabel[(rec.stage || "").toLowerCase()] || "new",
+          followUp: parseCSVDate(rec.followUp || ""),
+          notes: [],
+        };
+        if (existing.has(dupeKey(lead))) { skipped++; continue; }
+        existing.add(dupeKey(lead));
+        leads.push(lead);
+        added++;
+      }
+
+      save();
+      render();
+      toast(added
+        ? `Imported ${added} lead${added > 1 ? "s" : ""}${skipped ? `, skipped ${skipped}` : ""}`
+        : "Nothing new to import" + (skipped ? ` — ${skipped} duplicate or blank rows` : ""));
+    };
+    reader.readAsText(file);
+  }
+
   /* ---------- GitHub sync ---------- */
 
   let syncTimer = null;
@@ -1385,6 +1488,11 @@
   $("import-json").addEventListener("click", () => $("import-file").click());
   $("import-file").addEventListener("change", (e) => {
     if (e.target.files[0]) importJSON(e.target.files[0]);
+    e.target.value = "";
+  });
+  $("import-csv").addEventListener("click", () => $("import-csv-file").click());
+  $("import-csv-file").addEventListener("change", (e) => {
+    if (e.target.files[0]) importCSV(e.target.files[0]);
     e.target.value = "";
   });
 
