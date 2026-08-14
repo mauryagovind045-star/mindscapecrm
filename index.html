@@ -985,7 +985,14 @@
       const prev = byId.get(l.id);
       if (!prev || leadTime(l) >= leadTime(prev)) byId.set(l.id, l);
     }
-    const mergedLeads = [...byId.values()].filter((l) => !(tombs[l.id] > leadTime(l)));
+    let mergedLeads = [...byId.values()].filter((l) => !(tombs[l.id] > leadTime(l)));
+    // purge stale pre-migration copies: the old generic app created leads with
+    // unprefixed random ids; after migration the same people exist as MSP-/NTN-
+    // leads, so any unprefixed lead whose phone matches a migrated one is a dupe
+    if (mergedLeads.some((l) => /^(MSP|NTN)-/.test(l.id))) {
+      const migratedPhones = new Set(mergedLeads.filter((l) => /^(MSP|NTN|V1)-/.test(l.id)).map((l) => normPhone(l.phone)));
+      mergedLeads = mergedLeads.filter((l) => /^(MSP|NTN|MSC|V1)-/.test(l.id) || !migratedPhones.has(normPhone(l.phone)));
+    }
     return { leads: mergedLeads, tombstones: tombs };
   }
 
@@ -1018,7 +1025,14 @@
       if (res.status === 200) {
         const j = await res.json();
         sha = j.sha;
-        try { remote = JSON.parse(b64decode(j.content)); } catch { remote = null; }
+        if (j.content) {
+          try { remote = JSON.parse(b64decode(j.content)); } catch { remote = null; }
+        } else {
+          // files over 1MB come back without inline content — fetch raw
+          const raw = await fetch(url, { headers: { ...headers, "Accept": "application/vnd.github.raw+json" }, cache: "no-store" });
+          if (raw.ok) { try { remote = JSON.parse(await raw.text()); } catch { remote = null; } }
+        }
+        if (!remote) throw new Error("Couldn't read the synced data — will retry.");
       } else if (res.status === 401 || res.status === 403) {
         throw new Error("Token was rejected — check it in Sync settings.");
       } else if (res.status !== 404) {
