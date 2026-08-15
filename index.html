@@ -187,6 +187,42 @@
   .tile.tocall .num { color: var(--rent); }
   .tile.won .num { color: var(--won); }
 
+  /* Monthly summary */
+  .monthsec {
+    margin-top: 16px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 13px; padding: 14px 15px; box-shadow: var(--shadow);
+  }
+  .month-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  .month-head h3 { font-family: var(--font-display); font-size: 13px; font-weight: 700; }
+  .month-nav { display: flex; align-items: center; gap: 4px; }
+  .mn-btn {
+    width: 28px; height: 28px; border: 1px solid var(--line-strong); border-radius: 8px;
+    background: var(--surface); font-size: 16px; line-height: 1; color: var(--ink-soft);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .mn-btn:hover:not(:disabled) { background: var(--iris-soft); color: var(--iris-deep); }
+  .mn-btn:disabled { opacity: 0.35; cursor: default; }
+  .mn-label {
+    font-family: var(--font-mono); font-size: 12.5px; font-weight: 600;
+    min-width: 108px; text-align: center;
+  }
+  .mstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+  .mstat {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 11px; text-align: left;
+  }
+  .mstat .num { font-family: var(--font-mono); font-size: 21px; font-weight: 600; line-height: 1.15; }
+  .mstat .lbl { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .mstat.rent .num { color: var(--rent); }
+  .mstat.sale .num { color: var(--sale); }
+  .mstat.called .num { color: var(--won); }
+  .mstat.pending .num { color: var(--overdue); }
+  button.mstat:hover { border-color: var(--line-strong); background: var(--iris-soft); }
+  .mprog { margin-top: 12px; }
+  .mprog .track { background: var(--bg); border: 1px solid var(--line); border-radius: 999px; height: 8px; overflow: hidden; }
+  .mprog .fill { height: 100%; background: var(--won); border-radius: 999px; transition: width 0.3s; }
+  .mprog .cap { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+
   .dashsec { margin-top: 22px; }
   .dashsec h3 {
     font-family: var(--font-display); font-size: 13px; color: var(--ink);
@@ -511,7 +547,7 @@
   let syncCfg = loadJSON(SYNC_KEY, null);
   let editingId = null;
 
-  const state = { view: "dash", q: "", cat: "", zone: "", month: "", status: "", shown: 30 };
+  const state = { view: "dash", q: "", cat: "", zone: "", month: "", status: "", shown: 30, dashMonth: "" };
 
   function persistLocal() {
     localStorage.setItem(STORE_KEY, JSON.stringify(leads));
@@ -529,6 +565,15 @@
   function addDays(n) {
     const d = new Date(); d.setDate(d.getDate() + n);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  function curMonthStr() { return todayStr().slice(0, 7); }
+  function shiftMonth(m, delta) {
+    const [y, mo] = m.split("-").map(Number);
+    const d = new Date(y, mo - 1 + delta, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+  function monthLabel(m) {
+    return new Date(m + "-01T12:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" });
   }
   function fmtD(s) {
     if (!s) return "";
@@ -655,8 +700,42 @@
       if (L.status === "Closed - Won") won++;
       if (L.zone) byZone[L.zone] = (byZone[L.zone] || 0) + 1;
     }
+    if (!state.dashMonth) state.dashMonth = curMonthStr();
+    const dm = state.dashMonth;
+    let mTotal = 0, mRent = 0, mSale = 0, mCalled = 0;
+    for (const L of leads) {
+      if ((L.leadDate || "").slice(0, 7) !== dm) continue;
+      mTotal++;
+      if (L.category === "R") mRent++; else mSale++;
+      if (L.lastCalled || L.status !== "New") mCalled++;
+    }
+    const mPending = mTotal - mCalled;
+    const mPct = mTotal ? Math.round(mCalled / mTotal * 100) : 0;
+
     const d = document.createElement("div");
-    let html = `<div class="tiles">
+    let html = `<div class="dashsec monthsec">
+      <div class="month-head">
+        <h3>Monthly summary</h3>
+        <div class="month-nav">
+          <button class="mn-btn" data-mn="-1" aria-label="Previous month">‹</button>
+          <span class="mn-label">${monthLabel(dm)}</span>
+          <button class="mn-btn" data-mn="1" aria-label="Next month"${dm >= curMonthStr() ? " disabled" : ""}>›</button>
+        </div>
+      </div>
+      <div class="mstats">
+        <button class="mstat" data-mgo="all" data-mcat=""><div class="num">${mTotal}</div><div class="lbl">Leads received</div></button>
+        <button class="mstat rent" data-mgo="all" data-mcat="R"><div class="num">${mRent}</div><div class="lbl">Rental</div></button>
+        <button class="mstat sale" data-mgo="all" data-mcat="S"><div class="num">${mSale}</div><div class="lbl">Sale</div></button>
+        <div class="mstat called"><div class="num">${mCalled}</div><div class="lbl">Called / worked</div></div>
+        <button class="mstat pending" data-mgo="tocall"><div class="num">${mPending}</div><div class="lbl">Pending to work</div></button>
+      </div>
+      <div class="mprog">
+        <div class="track"><div class="fill" style="width:${mPct}%"></div></div>
+        <div class="cap">${mTotal ? `${mCalled} of ${mTotal} leads worked on (${mPct}%)` : "No leads received in " + monthLabel(dm) + " yet."}</div>
+      </div>
+    </div>`;
+
+    html += `<div class="tiles">
       <button class="tile due" data-go="due"><div class="num">${c.due}</div><div class="lbl">Follow-ups due</div></button>
       <button class="tile tocall" data-go="tocall"><div class="num">${c.tc}</div><div class="lbl">Still to contact</div></button>
       <button class="tile" data-go="all"><div class="num">${sched}</div><div class="lbl">Scheduled ahead</div></button>
@@ -686,6 +765,16 @@
     d.innerHTML = html;
     $("dash").appendChild(d);
     d.querySelectorAll(".tile[data-go]").forEach((t) => t.addEventListener("click", () => setView(t.dataset.go)));
+    d.querySelectorAll("[data-mn]").forEach((b) => b.addEventListener("click", () => {
+      state.dashMonth = shiftMonth(state.dashMonth, Number(b.dataset.mn));
+      render();
+    }));
+    d.querySelectorAll(".mstat[data-mgo]").forEach((b) => b.addEventListener("click", () => {
+      state.month = dm;
+      $("fmonth").value = dm;
+      if ("mcat" in b.dataset) { state.cat = b.dataset.mcat; $("fcat").value = state.cat; }
+      setView(b.dataset.mgo);
+    }));
   }
 
   const svgWA = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M.06 24l1.68-6.15A11.9 11.9 0 1 1 12.05 24 11.9 11.9 0 0 1 6.2 22.5zM6.6 20.1l.37.22a9.86 9.86 0 0 0 5.08 1.39A9.9 9.9 0 1 0 2.15 12c0 1.9.54 3.7 1.5 5.25l.24.38-1 3.64zM17.5 14.3c-.24-.12-1.42-.7-1.64-.78s-.38-.12-.54.12-.62.78-.76.94-.28.18-.52.06a8.1 8.1 0 0 1-2.38-1.47 9 9 0 0 1-1.65-2.05c-.17-.3 0-.46.11-.6l.36-.46c.12-.16.16-.28.24-.46a.5.5 0 0 0-.02-.46c-.06-.12-.54-1.3-.74-1.78s-.4-.4-.54-.41h-.46a.9.9 0 0 0-.64.3 2.7 2.7 0 0 0-.84 2c0 1.18.86 2.32.98 2.48s1.7 2.6 4.12 3.64c.58.25 1.02.4 1.37.51.58.18 1.1.16 1.52.1.46-.07 1.42-.58 1.62-1.14s.2-1.04.14-1.14-.22-.16-.46-.28z"/></svg>';
