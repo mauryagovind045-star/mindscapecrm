@@ -404,6 +404,7 @@
           <button id="export-csv">Export CSV</button>
           <button id="export-json">Export JSON backup</button>
           <button id="import-json">Import JSON backup</button>
+          <button id="import-sheet">Import leads (CSV / Excel)</button>
           <button id="import-old-html">Import old CRM file (.html)</button>
           <button id="import-old-track">Import old tracking backup</button>
           <div class="menu-note">Data syncs to your private GitHub repo. Export a backup now and then anyway.</div>
@@ -515,6 +516,7 @@
 
 <div class="toast" id="toast" role="status"></div>
 <input type="file" id="file-json" accept="application/json" hidden>
+<input type="file" id="file-sheet" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
 <input type="file" id="file-html" accept=".html,text/html" hidden>
 <input type="file" id="file-track" accept="application/json" hidden>
 
@@ -999,6 +1001,185 @@
     };
   }
 
+  /* ---------- CSV / Excel import ---------- */
+
+  function parseCSV(text) {
+    text = text.replace(/^\uFEFF/, "");
+    const firstLine = text.slice(0, (text.indexOf("\n") + 1) || text.length);
+    const delim = [",", ";", "\t"].reduce((a, b) => (firstLine.split(a).length >= firstLine.split(b).length ? a : b));
+    const rows = [[""]];
+    let inQ = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i], row = rows[rows.length - 1];
+      if (inQ) {
+        if (ch === '"') { if (text[i + 1] === '"') { row[row.length - 1] += '"'; i++; } else inQ = false; }
+        else row[row.length - 1] += ch;
+      } else if (ch === '"') inQ = true;
+      else if (ch === delim) row.push("");
+      else if (ch === "\n") rows.push([""]);
+      else if (ch !== "\r") row[row.length - 1] += ch;
+    }
+    return rows.filter((r) => r.some((c) => c.trim() !== ""));
+  }
+
+  // reads the first worksheet of an .xlsx without any library (zip + DecompressionStream)
+  async function readXLSX(buf) {
+    const u8 = new Uint8Array(buf), dv = new DataView(buf), td = new TextDecoder();
+    let eocd = -1;
+    for (let i = u8.length - 22; i >= 0 && i >= u8.length - 65558; i--)
+      if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    if (eocd < 0) throw new Error("not a zip");
+    const count = dv.getUint16(eocd + 10, true);
+    const entries = {};
+    let off = dv.getUint32(eocd + 16, true);
+    for (let i = 0; i < count && dv.getUint32(off, true) === 0x02014b50; i++) {
+      const nameLen = dv.getUint16(off + 28, true), extraLen = dv.getUint16(off + 30, true), cmtLen = dv.getUint16(off + 32, true);
+      entries[td.decode(u8.subarray(off + 46, off + 46 + nameLen))] =
+        { method: dv.getUint16(off + 10, true), size: dv.getUint32(off + 20, true), off: dv.getUint32(off + 42, true) };
+      off += 46 + nameLen + extraLen + cmtLen;
+    }
+    async function readEntry(name) {
+      const e = entries[name];
+      if (!e) return null;
+      const start = e.off + 30 + dv.getUint16(e.off + 26, true) + dv.getUint16(e.off + 28, true);
+      const data = u8.slice(start, start + e.size);
+      if (e.method === 0) return td.decode(data);
+      return new Response(new Response(data).body.pipeThrough(new DecompressionStream("deflate-raw"))).text();
+    }
+    const xml = (s) => new DOMParser().parseFromString(s, "text/xml");
+    const sstSrc = await readEntry("xl/sharedStrings.xml");
+    const sst = sstSrc ? [...xml(sstSrc).getElementsByTagName("si")].map((si) =>
+      [...si.getElementsByTagName("t")].map((t) => t.textContent).join("")) : [];
+    const sheetPath = Object.keys(entries).filter((k) => /^xl\/worksheets\/sheet\d+\.xml$/.test(k))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))[0];
+    if (!sheetPath) throw new Error("no worksheet");
+    const doc = xml(await readEntry(sheetPath));
+    const rows = [];
+    for (const rowEl of doc.getElementsByTagName("row")) {
+      const cells = [];
+      for (const c of rowEl.getElementsByTagName("c")) {
+        const letters = (c.getAttribute("r") || "").replace(/\d+/g, "");
+        let col = 0;
+        for (const ch of letters) col = col * 26 + (ch.charCodeAt(0) - 64);
+        col = letters ? col - 1 : cells.length;
+        const t = c.getAttribute("t");
+        let v;
+        if (t === "inlineStr") v = [...c.getElementsByTagName("t")].map((x) => x.textContent).join("");
+        else {
+          const vEl = c.getElementsByTagName("v")[0];
+          v = vEl ? vEl.textContent : "";
+          if (t === "s") v = sst[Number(v)] ?? "";
+        }
+        cells[col] = v;
+      }
+      rows.push(Array.from(cells, (v) => v ?? ""));
+    }
+    return rows.filter((r) => r.some((c) => String(c).trim() !== ""));
+  }
+
+  const SHEET_COLS = {
+    id: ["id", "leadid"],
+    name: ["name", "clientname", "customername", "fullname", "client", "customer", "leadname"],
+    phone: ["phone", "mobile", "phoneno", "mobileno", "phonenumber", "mobilenumber", "contact", "contactno", "contactnumber", "number", "whatsapp"],
+    email: ["email", "emailid", "mail"],
+    category: ["category", "type", "leadtype", "dealtype", "rentalsale", "rentsale"],
+    config: ["config", "configuration", "bhk"],
+    ptype: ["ptype", "propertytype", "property"],
+    location: ["location", "area", "locality"],
+    zone: ["zone", "region"],
+    budget: ["budget", "price", "value", "amount"],
+    leadDate: ["leaddate", "date", "enquirydate", "dateofenquiry", "createddate", "created"],
+    status: ["status", "stage"],
+    urgency: ["urgency", "priority"],
+    outcome: ["outcome"],
+    lastCalled: ["lastcalled", "lastcall", "lastcalldate"],
+    followUp: ["followup", "nextfollowup", "followupdate", "nextfollowupdate"],
+    attempts: ["attempts", "callattempts"],
+    source: ["source", "leadsource"],
+    requirements: ["requirements", "requirement", "notes", "remarks", "comments", "description"],
+  };
+
+  function sheetDate(v) {
+    if (v == null || v === "") return "";
+    const n = Number(v);
+    if (Number.isFinite(n) && n > 20000 && n < 80000)   // Excel serial date
+      return new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86400000).toISOString().slice(0, 10);
+    const s = String(v).trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+    m = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/);   // day-first (Indian style)
+    if (m) return `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+    const t = Date.parse(s);
+    return Number.isNaN(t) ? "" : new Date(t).toISOString().slice(0, 10);
+  }
+
+  function importSheetRows(rows) {
+    if (rows.length < 2) { toast("No lead rows found in that file"); return; }
+    const normH = (h) => String(h ?? "").toLowerCase().replace(/[^a-z]/g, "");
+    const headers = rows[0].map(normH);
+    const col = {};
+    for (const [field, aliases] of Object.entries(SHEET_COLS)) {
+      const i = headers.findIndex((h) => aliases.includes(h));
+      if (i >= 0) col[field] = i;
+    }
+    if (col.name === undefined) { toast("Couldn't find a Name column — the first row must have headers like Name, Phone, Budget…"); return; }
+    const get = (row, f) => col[f] === undefined ? "" : String(row[col[f]] ?? "").trim();
+    const ids = new Set(leads.map((l) => l.id));
+    const phones = new Set(leads.map((l) => normPhone(l.phone)).filter(Boolean));
+    const urgMap = { hot: "Hot", warm: "Warm", cold: "Cold", high: "Hot", medium: "Warm", low: "Cold" };
+    let added = 0, skipped = 0;
+    for (const row of rows.slice(1)) {
+      const name = get(row, "name");
+      if (!name) continue;
+      const id = get(row, "id");
+      const phone = get(row, "phone").replace(/\.0+$/, "");
+      const np = normPhone(phone);
+      if ((id && ids.has(id)) || (np && phones.has(np))) { skipped++; continue; }
+      const budget = Number(get(row, "budget").replace(/[^\d.]/g, "")) || 0;
+      const catRaw = get(row, "category").toLowerCase();
+      const category = /^(s|buy|purchase|resale)/.test(catRaw) ? "S"
+        : /^(r|lease|let)/.test(catRaw) ? "R"
+        : budget >= 1000000 ? "S" : "R";
+      const statusRaw = get(row, "status").toLowerCase();
+      const outcomeRaw = get(row, "outcome").toLowerCase();
+      let config = get(row, "config");
+      if (/^\d+$/.test(config)) config += " BHK";
+      leads.push({
+        id: id || uid(), createdAt: Date.now(), updatedAt: Date.now(),
+        name, phone, wa: np ? "91" + np : "", email: get(row, "email"),
+        category, config, ptype: get(row, "ptype"),
+        location: get(row, "location"), zone: get(row, "zone"), budget,
+        leadDate: sheetDate(get(row, "leadDate")), repeat: false,
+        source: get(row, "source") || "Import",
+        status: STATUSES.find((s) => s.toLowerCase() === statusRaw) || "New",
+        outcome: OUTCOMES.find((o) => o && o.toLowerCase() === outcomeRaw) || "",
+        urgency: urgMap[get(row, "urgency").toLowerCase()] || "",
+        lastCalled: sheetDate(get(row, "lastCalled")),
+        followUp: sheetDate(get(row, "followUp")) || null,
+        attempts: Number(get(row, "attempts")) || 0,
+        requirements: get(row, "requirements"), notes: [],
+      });
+      if (id) ids.add(id);
+      if (np) phones.add(np);
+      added++;
+    }
+    save(); fillFilters(); render();
+    toast(added
+      ? `Imported ${added} lead${added === 1 ? "" : "s"}${skipped ? `, skipped ${skipped} duplicate${skipped === 1 ? "" : "s"}` : ""}`
+      : skipped ? "All those leads are already here" : "No leads found in that file");
+  }
+
+  function importSheet(file) {
+    const isXlsx = /\.xlsx$/i.test(file.name);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        importSheetRows(isXlsx ? await readXLSX(reader.result) : parseCSV(String(reader.result)));
+      } catch { toast(`Couldn't read that file — is it a valid ${isXlsx ? ".xlsx" : ".csv"} file?`); }
+    };
+    if (isXlsx) reader.readAsArrayBuffer(file); else reader.readAsText(file);
+  }
+
   function importOldHTML(file) {
     const reader = new FileReader();
     reader.onload = () => {
@@ -1228,6 +1409,8 @@
   $("export-json").addEventListener("click", exportJSON);
   $("import-json").addEventListener("click", () => $("file-json").click());
   $("file-json").addEventListener("change", (e) => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ""; });
+  $("import-sheet").addEventListener("click", () => $("file-sheet").click());
+  $("file-sheet").addEventListener("change", (e) => { if (e.target.files[0]) importSheet(e.target.files[0]); e.target.value = ""; });
   $("import-old-html").addEventListener("click", () => $("file-html").click());
   $("file-html").addEventListener("change", (e) => { if (e.target.files[0]) importOldHTML(e.target.files[0]); e.target.value = ""; });
   $("import-old-track").addEventListener("click", () => $("file-track").click());
