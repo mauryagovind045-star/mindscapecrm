@@ -312,6 +312,36 @@
   .tag.sched { color: var(--sched); background: var(--sched-soft); }
   .tag.rep { color: var(--ink-soft); background: var(--bg); }
   .tag.txt { color: var(--wa-deep); background: #e2f5ea; }
+  .tag.av { color: var(--won); background: var(--won-soft); }
+  .tag.oh { color: var(--hot); background: var(--hot-soft); }
+  .tag.ro { color: var(--sched); background: var(--sched-soft); }
+  .tag.so { color: var(--overdue); background: var(--overdue-soft); }
+  .tag.na { color: var(--muted); background: var(--bg); }
+
+  /* Properties view */
+  .props-head { margin-top: 14px; display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .props-head input[type="search"] {
+    flex: 1; min-width: 150px; background: var(--surface);
+    border: 1px solid var(--line-strong); border-radius: 9px; padding: 8px 10px; font-size: 13.5px;
+  }
+  .props-head select {
+    background: var(--surface); border: 1px solid var(--line-strong);
+    border-radius: 9px; padding: 8px 10px; font-size: 13.5px;
+  }
+  .mstat.on { border-color: var(--iris); background: var(--iris-soft); }
+  .prop-owner select {
+    background: var(--surface); border: 1px solid var(--line-strong);
+    border-radius: 8px; padding: 5px 8px; font-size: 12.5px;
+  }
+  .prop-owner { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--ink-soft); flex-wrap: wrap; }
+  .prop-owner .obtn {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 11px; color: var(--ink-soft);
+  }
+  .prop-owner .obtn svg { width: 13px; height: 13px; }
+  .prop-owner .obtn.w { color: var(--wa-deep); border-color: var(--wa-deep); }
+  .prop-owner .obtn:hover { background: var(--iris-soft); }
+  #prop-backdrop .modal { max-height: 90vh; overflow-y: auto; }
 
   .req { color: var(--ink-soft); font-size: 13px; margin-top: 5px; }
   .req b { color: var(--ink); font-weight: 600; }
@@ -471,6 +501,7 @@
       <button class="tab" data-v="tocall" aria-selected="false">To Contact <span class="b" id="c-tocall">0</span></button>
       <button class="tab" data-v="sched" aria-selected="false">Follow Ups <span class="b" id="c-sched">0</span></button>
       <button class="tab" data-v="all" aria-selected="false">All Leads</button>
+      <button class="tab" data-v="props" aria-selected="false">Properties <span class="b" id="c-props">0</span></button>
     </div>
     <div class="filters" id="filters" hidden>
       <input type="search" id="q" placeholder="Search name, phone, area…" autocomplete="off" aria-label="Search leads">
@@ -569,6 +600,50 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="prop-backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Property details">
+    <h2 id="prop-title">New property</h2>
+    <div class="field"><label for="pr-name">Project / building name</label><input id="pr-name" required placeholder="e.g. Models Exotica"></div>
+    <div class="field-row">
+      <div class="field"><label for="pr-unit">Unit / villa no</label><input id="pr-unit" placeholder="A-302"></div>
+      <div class="field"><label for="pr-for">Listing for</label>
+        <select id="pr-for"><option value="R">Rent</option><option value="S">Sale</option></select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="pr-ptype">Property type</label><input id="pr-ptype" list="ptype-options"></div>
+      <div class="field"><label for="pr-config">Config</label><input id="pr-config" placeholder="2 BHK" list="config-options"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="pr-location">Location / area</label><input id="pr-location" list="loc-options"></div>
+      <div class="field"><label for="pr-zone">Zone</label><input id="pr-zone" list="zone-options"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="pr-price">Price / rent (₹)</label><input id="pr-price" type="number" min="0" step="any"></div>
+      <div class="field"><label for="pr-size">Size (sq ft)</label><input id="pr-size" placeholder="1200"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="pr-furnish">Furnishing</label>
+        <select id="pr-furnish"><option value="">—</option><option>Fully Furnished</option><option>Semi Furnished</option><option>Unfurnished</option></select></div>
+      <div class="field"><label for="pr-floor">Floor</label><input id="pr-floor" placeholder="3rd"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="pr-owner">Owner name</label><input id="pr-owner"></div>
+      <div class="field"><label for="pr-ophone">Owner phone</label><input id="pr-ophone" placeholder="98xxxxxxxx"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="pr-status">Status</label><select id="pr-status"></select></div>
+      <div class="field"><label for="pr-avail">Available from</label><input id="pr-avail" type="date"></div>
+    </div>
+    <div class="field"><label for="pr-link">Photos / listing link</label><input id="pr-link" type="url" placeholder="https://…"></div>
+    <div class="field"><label for="pr-notes">Write-up / remarks</label><textarea id="pr-notes" rows="3" placeholder="Sea view, 2 covered parkings, pets allowed, keys with watchman…"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="prop-delete" hidden>Delete</button>
+      <button class="btn" id="prop-cancel">Cancel</button>
+      <button class="btn btn-primary" id="prop-save">Save property</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status"></div>
 <input type="file" id="file-json" accept="application/json" hidden>
 <input type="file" id="file-sheet" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
@@ -591,6 +666,10 @@
     "Site visit booked", "Deal in progress", "Wrong number"];
   const PTYPES = ["Apartment", "Villa", "Penthouse", "Independent House", "Plot / Land",
     "Commercial Office", "Commercial Shop / Showroom", "Warehouse / Godown", "Industrial Shed"];
+  const PROPS_KEY = "mindscape-props-v1";
+  const PROP_TOMB_KEY = "mindscape-prop-tombs-v1";
+  const PSTATUSES = ["Available", "On Hold", "Rented Out", "Sold", "Not Available"];
+  const PSTATUS_TAG = { "Available": "av", "On Hold": "oh", "Rented Out": "ro", "Sold": "so", "Not Available": "na" };
 
   const $ = (id) => document.getElementById(id);
 
@@ -601,10 +680,13 @@
 
   let leads = loadJSON(STORE_KEY, []);
   let tombstones = loadJSON(TOMB_KEY, {});
+  let props = loadJSON(PROPS_KEY, []);
+  let propTombs = loadJSON(PROP_TOMB_KEY, {});
   let syncCfg = loadJSON(SYNC_KEY, null);
   let editingId = null;
+  let editingPropId = null;
 
-  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", shown: 30, dashMonth: "" };
+  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", shown: 30, dashMonth: "", pq: "", pcat: "", pstat: "" };
 
   // commercial = commercial/industrial ptypes, incl. free-text ones from imported sheets
   const isCommercial = (L) => /commercial|shop|showroom|office|warehouse|godown|industrial|retail/i.test(L.ptype || "");
@@ -612,6 +694,8 @@
   function persistLocal() {
     localStorage.setItem(STORE_KEY, JSON.stringify(leads));
     localStorage.setItem(TOMB_KEY, JSON.stringify(tombstones));
+    localStorage.setItem(PROPS_KEY, JSON.stringify(props));
+    localStorage.setItem(PROP_TOMB_KEY, JSON.stringify(propTombs));
   }
 
   function save() { persistLocal(); scheduleSync(); }
@@ -739,14 +823,16 @@
     $("c-due").classList.toggle("alert", due > 0 && state.view !== "due");
     $("c-tocall").textContent = tc;
     $("c-sched").textContent = sched + due;
+    $("c-props").textContent = props.filter((p) => p.status === "Available").length;
     return { due, tc, sched };
   }
 
   function render() {
     const c = counts();
-    $("filters").hidden = state.view === "dash";
+    $("filters").hidden = state.view === "dash" || state.view === "props";
     $("dash").innerHTML = ""; $("list").innerHTML = "";
     if (state.view === "dash") { renderDash(c); $("more").hidden = true; $("hint").textContent = ""; return; }
+    if (state.view === "props") { renderProps(); $("more").hidden = true; $("hint").textContent = ""; return; }
     const f = viewSorted(filtered());
     const slice = f.slice(0, state.shown);
     if (!slice.length) {
@@ -849,6 +935,7 @@
       <button class="tile tocall" data-go="tocall"><div class="num">${c.tc}</div><div class="lbl">Still to contact</div></button>
       <button class="tile" data-go="sched"><div class="num">${sched}</div><div class="lbl">Scheduled ahead</div></button>
       <button class="tile won"><div class="num">${won}</div><div class="lbl">Closed won</div></button>
+      <button class="tile" data-go="props"><div class="num">${props.filter((p) => p.status === "Available").length}</div><div class="lbl">Properties available</div></button>
     </div>`;
 
     const order = STATUSES.filter((s) => byStatus[s]);
@@ -978,6 +1065,164 @@
 
   function refreshCard(L, old) { old.replaceWith(cardEl(L)); counts(); }
 
+  /* ---------- Properties ---------- */
+
+  const PROP_INACTIVE = ["Rented Out", "Sold", "Not Available"];
+
+  function propFiltered() {
+    const q = state.pq.toLowerCase();
+    return props.filter((p) => {
+      if (state.pcat && p.listingFor !== state.pcat) return false;
+      if (state.pstat && p.status !== state.pstat) return false;
+      if (q && !([p.name, p.unit, p.location, p.zone, p.ownerName, p.ownerPhone, p.config, p.ptype, p.notes]
+        .map((v) => v || "").join(" ").toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }
+
+  function renderProps() {
+    const d = document.createElement("div");
+    const n = (s) => props.filter((p) => p.status === s).length;
+    const pill = (label, val, key, cls) =>
+      `<button class="mstat ${cls}${state.pstat === key ? " on" : ""}" data-pstat="${key}"><div class="num">${val}</div><div class="lbl">${label}</div></button>`;
+    d.innerHTML = `
+      <div class="props-head">
+        <input type="search" id="pq" placeholder="Search project, area, owner…" value="${esc(state.pq)}" aria-label="Search properties">
+        <select id="pcat" aria-label="Listing type">
+          <option value="">Rent &amp; Sale</option>
+          <option value="R"${state.pcat === "R" ? " selected" : ""}>Rent</option>
+          <option value="S"${state.pcat === "S" ? " selected" : ""}>Sale</option>
+        </select>
+        <button class="btn btn-primary" id="add-prop">+ Add property</button>
+      </div>
+      <div class="dashsec monthsec" style="margin-top:12px">
+        <div class="mstats">
+          ${pill("All properties", props.length, "", "")}
+          ${pill("Available", n("Available"), "Available", "called")}
+          ${pill("On Hold", n("On Hold"), "On Hold", "pending")}
+          ${pill("Rented Out", n("Rented Out"), "Rented Out", "rent")}
+          ${pill("Sold", n("Sold"), "Sold", "sale")}
+        </div>
+      </div>`;
+    $("dash").appendChild(d);
+    $("add-prop").addEventListener("click", () => openPropModal(null));
+    $("pq").addEventListener("input", (e) => { state.pq = e.target.value; renderPropList(); });
+    $("pcat").addEventListener("change", (e) => { state.pcat = e.target.value; renderPropList(); });
+    d.querySelectorAll("[data-pstat]").forEach((b) => b.addEventListener("click", () => {
+      state.pstat = state.pstat === b.dataset.pstat ? "" : b.dataset.pstat;
+      render();
+    }));
+    renderPropList();
+  }
+
+  function renderPropList() {
+    const list = $("list");
+    list.innerHTML = "";
+    const f = propFiltered();
+    if (!f.length) {
+      list.innerHTML = '<div class="empty">' + (props.length === 0
+        ? "No properties yet. Tap + Add property to build your inventory."
+        : "Nothing matches these filters.") + "</div>";
+      return;
+    }
+    for (const p of f) list.appendChild(propCardEl(p));
+  }
+
+  function propCardEl(p) {
+    const c = document.createElement("div");
+    c.className = "card" + (PROP_INACTIVE.includes(p.status) ? " done" : "");
+    const np = normPhone(p.ownerPhone || "");
+    const detail = [[p.config, p.ptype].filter(Boolean).join(" "),
+      [p.location, p.zone].filter(Boolean).join(", "),
+      p.size ? p.size + " sq ft" : "", p.floor ? "Floor: " + p.floor : "",
+      p.furnishing].filter(Boolean).join(" · ");
+    const price = budgetStr({ category: p.listingFor, budget: p.price });
+    c.innerHTML = `
+      <div class="top"><span class="name" role="button" tabindex="0">${esc(p.name) || "(no name)"}${p.unit ? " · " + esc(p.unit) : ""}</span>
+        <span class="tag ${p.listingFor === "R" ? "r" : "s"}">${p.listingFor === "R" ? "Rent" : "Sale"}</span>
+        <span class="tag ${PSTATUS_TAG[p.status] || "na"}">${p.status}</span></div>
+      <div class="req">${detail ? esc(detail) : "<span style='color:var(--muted)'>No details yet — tap the name to fill them in.</span>"}${price ? " · <b>" + price + "</b>" : ""}</div>
+      ${p.availableFrom ? `<div class="metad">Available from ${fmtD(p.availableFrom)}</div>` : ""}
+      ${p.notes ? `<div class="metad">${esc(p.notes)}</div>` : ""}
+      ${p.link ? `<div class="metad"><a href="${esc(p.link)}" target="_blank" rel="noopener">Photos / listing ↗</a></div>` : ""}
+      <div class="prop-owner">
+        ${p.ownerName || p.ownerPhone ? `<span>Owner: <b>${esc(p.ownerName || "—")}</b>${p.ownerPhone ? " · " + esc(p.ownerPhone) : ""}</span>` : ""}
+        ${np ? `<a class="obtn w" target="_blank" rel="noopener" href="https://wa.me/91${np}">${svgWA} WhatsApp</a>
+        <a class="obtn" href="tel:${esc(p.ownerPhone || "")}">${svgCall} Call</a>` : ""}
+        <select data-ps aria-label="Property status" style="margin-left:auto">${PSTATUSES.map((s) => `<option${p.status === s ? " selected" : ""}>${s}</option>`).join("")}</select>
+      </div>`;
+    c.querySelector(".name").addEventListener("click", () => openPropModal(p.id));
+    c.querySelector(".name").addEventListener("keydown", (e) => { if (e.key === "Enter") openPropModal(p.id); });
+    c.querySelector("[data-ps]").addEventListener("change", (e) => {
+      p.status = e.target.value; p.updatedAt = Date.now();
+      save(); render();
+    });
+    return c;
+  }
+
+  function openPropModal(id) {
+    editingPropId = id;
+    const p = id ? props.find((x) => x.id === id) : null;
+    $("prop-title").textContent = p ? p.name : "New property";
+    $("pr-name").value = p?.name || "";
+    $("pr-unit").value = p?.unit || "";
+    $("pr-for").value = p?.listingFor || "R";
+    $("pr-ptype").value = p?.ptype || "";
+    $("pr-config").value = p?.config || "";
+    $("pr-location").value = p?.location || "";
+    $("pr-zone").value = p?.zone || "";
+    $("pr-price").value = p?.price || "";
+    $("pr-size").value = p?.size || "";
+    $("pr-furnish").value = p?.furnishing || "";
+    $("pr-floor").value = p?.floor || "";
+    $("pr-owner").value = p?.ownerName || "";
+    $("pr-ophone").value = p?.ownerPhone || "";
+    const ssel = $("pr-status");
+    ssel.innerHTML = PSTATUSES.map((s) => `<option>${s}</option>`).join("");
+    ssel.value = p?.status || "Available";
+    $("pr-avail").value = p?.availableFrom || "";
+    $("pr-link").value = p?.link || "";
+    $("pr-notes").value = p?.notes || "";
+    $("prop-delete").hidden = !p;
+    $("prop-backdrop").hidden = false;
+    $("pr-name").focus();
+  }
+
+  function closePropModal() { $("prop-backdrop").hidden = true; editingPropId = null; }
+
+  function savePropModal() {
+    const name = $("pr-name").value.trim();
+    if (!name) { $("pr-name").focus(); return; }
+    const data = {
+      name, unit: $("pr-unit").value.trim(), listingFor: $("pr-for").value,
+      ptype: $("pr-ptype").value.trim(), config: $("pr-config").value.trim(),
+      location: $("pr-location").value.trim(), zone: $("pr-zone").value.trim(),
+      price: $("pr-price").value ? Number($("pr-price").value) : 0,
+      size: $("pr-size").value.trim(), furnishing: $("pr-furnish").value,
+      floor: $("pr-floor").value.trim(), ownerName: $("pr-owner").value.trim(),
+      ownerPhone: $("pr-ophone").value.trim(), status: $("pr-status").value,
+      availableFrom: $("pr-avail").value || "", link: $("pr-link").value.trim(),
+      notes: $("pr-notes").value.trim(), updatedAt: Date.now(),
+    };
+    if (editingPropId) {
+      Object.assign(props.find((x) => x.id === editingPropId), data);
+      toast("Property updated");
+    } else {
+      props.unshift({ id: uid(), createdAt: Date.now(), ...data });
+      toast("Property added");
+    }
+    save(); render(); closePropModal();
+  }
+
+  function deleteProp() {
+    const p = props.find((x) => x.id === editingPropId);
+    if (!p) return;
+    if (!confirm(`Delete ${p.name}? This can't be undone.`)) return;
+    propTombs[editingPropId] = Date.now();
+    props = props.filter((x) => x.id !== editingPropId);
+    save(); render(); closePropModal(); toast("Property deleted");
+  }
+
   /* ---------- Panel (full edit) ---------- */
 
   function openPanel(id) {
@@ -1086,7 +1331,7 @@
   }
 
   function exportJSON() {
-    download(`mindscape-backup-${todayStr()}.json`, JSON.stringify({ version: 2, leads, tombstones }), "application/json");
+    download(`mindscape-backup-${todayStr()}.json`, JSON.stringify({ version: 2, leads, tombstones, props, propTombstones: propTombs }), "application/json");
     toast("Backup exported");
   }
 
@@ -1100,8 +1345,12 @@
         const existing = new Set(leads.map((l) => l.id));
         let added = 0;
         for (const l of arr) if (l && l.id && l.name && !existing.has(l.id)) { leads.push(v2ify(l)); added++; }
+        if (Array.isArray(data.props)) {
+          const pExisting = new Set(props.map((p) => p.id));
+          for (const p of data.props) if (p && p.id && p.name && !pExisting.has(p.id)) { props.push(p); added++; }
+        }
         save(); fillFilters(); render();
-        toast(added ? `Imported ${added} lead${added > 1 ? "s" : ""}` : "Nothing new to import");
+        toast(added ? `Imported ${added} item${added > 1 ? "s" : ""}` : "Nothing new to import");
       } catch { toast("That file isn't a Mindscape backup"); }
     };
     reader.readAsText(file);
@@ -1422,10 +1671,20 @@
       const migratedPhones = new Set(mergedLeads.filter((l) => /^(MSP|NTN|V1)-/.test(l.id)).map((l) => normPhone(l.phone)));
       mergedLeads = mergedLeads.filter((l) => /^(MSP|NTN|MSC|V1)-/.test(l.id) || !migratedPhones.has(normPhone(l.phone)));
     }
-    return { leads: mergedLeads, tombstones: tombs };
+    const pTombs = { ...(remote?.propTombstones || {}) };
+    for (const [id, ts] of Object.entries(propTombs)) pTombs[id] = Math.max(ts, pTombs[id] || 0);
+    const pById = new Map();
+    for (const p of [...(remote?.props || []), ...props]) {
+      if (!p || !p.id) continue;
+      const prev = pById.get(p.id);
+      if (!prev || leadTime(p) >= leadTime(prev)) pById.set(p.id, p);
+    }
+    const mergedProps = [...pById.values()].filter((p) => !(pTombs[p.id] > leadTime(p)));
+
+    return { leads: mergedLeads, tombstones: tombs, props: mergedProps, propTombstones: pTombs };
   }
 
-  function serialize() { return JSON.stringify({ version: 2, leads, tombstones }); }
+  function serialize() { return JSON.stringify({ version: 2, leads, tombstones, props, propTombstones: propTombs }); }
 
   function setSyncStatus(stateName, msg) {
     $("sync-dot").className = "sync-dot" + (stateName ? " " + stateName : "");
@@ -1469,9 +1728,10 @@
       }
       const merged = mergeRemote(remote);
       leads = merged.leads; tombstones = merged.tombstones;
+      props = merged.props; propTombs = merged.propTombstones;
       persistLocal(); fillFilters(); render();
       const body = serialize();
-      const remoteBody = remote && remote.version === 2 ? JSON.stringify({ version: 2, leads: remote.leads, tombstones: remote.tombstones || {} }) : null;
+      const remoteBody = remote && remote.version === 2 ? JSON.stringify({ version: 2, leads: remote.leads, tombstones: remote.tombstones || {}, props: remote.props || [], propTombstones: remote.propTombstones || {} }) : null;
       if (body !== remoteBody) {
         const put = await fetch(url, {
           method: "PUT", headers,
@@ -1536,6 +1796,10 @@
   $("overlay").addEventListener("click", closePanel);
   $("save-lead").addEventListener("click", savePanel);
   $("delete-lead").addEventListener("click", deleteLead);
+  $("prop-save").addEventListener("click", savePropModal);
+  $("prop-cancel").addEventListener("click", closePropModal);
+  $("prop-delete").addEventListener("click", deleteProp);
+  $("prop-backdrop").addEventListener("click", (e) => { if (e.target === $("prop-backdrop")) closePropModal(); });
   $("lead-form").addEventListener("submit", (e) => { e.preventDefault(); savePanel(); });
 
   $("note-add").addEventListener("click", () => {
