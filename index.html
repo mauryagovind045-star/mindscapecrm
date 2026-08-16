@@ -190,23 +190,24 @@
   .goalbar .g-days { font-family: var(--font-mono); font-weight: 600; }
 
   /* Today's agenda */
-  .agenda { display: flex; flex-direction: column; gap: 7px; }
+  .agenda { display: flex; flex-direction: column; }
   .ag-row {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
-    padding: 9px 12px; text-align: left;
+    padding: 7px 2px; text-align: left; border-top: 1px solid var(--line);
   }
-  .ag-row:hover { border-color: var(--line-strong); background: var(--iris-soft); }
-  .ag-name { font-weight: 700; font-size: 13.5px; }
-  .ag-sub { font-size: 12px; color: var(--muted); }
+  .agenda .ag-row:first-child { border-top: none; }
+  .ag-row:hover .ag-name { color: var(--iris); }
+  .ag-main { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .ag-name { font-weight: 600; font-size: 13.5px; white-space: nowrap; }
+  .ag-sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ag-when {
-    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
-    padding: 3px 9px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+    padding: 2px 8px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;
   }
   .ag-when.od { color: var(--overdue); background: var(--overdue-soft); }
   .ag-when.td { color: var(--hot); background: var(--hot-soft); }
   .ag-when.tm { color: var(--iris); background: var(--iris-soft); }
-  .ag-more { font-size: 12.5px; font-weight: 600; color: var(--iris); align-self: flex-start; padding: 2px 0; }
+  .ag-more { font-size: 12px; font-weight: 600; color: var(--iris); align-self: flex-start; padding: 6px 2px 0; }
   .ag-more:hover { text-decoration: underline; }
 
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 16px; }
@@ -784,18 +785,19 @@
     const today = todayStr(), tmrw = addDays(1);
     const agenda = leads.filter((L) => L.followUp && L.followUp <= tmrw && !DONE.includes(L.status))
       .sort((a, b) => a.followUp.localeCompare(b.followUp));
-    const agShown = agenda.slice(0, 8);
+    const agShown = state.agAll ? agenda : agenda.slice(0, 5);
     const agRows = agShown.map((L) => {
-      const when = L.followUp < today ? `<span class="ag-when od">Overdue · ${fmtD(L.followUp)}</span>`
+      const dShort = new Date(L.followUp + "T12:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      const when = L.followUp < today ? `<span class="ag-when od">Due ${dShort}</span>`
         : L.followUp === today ? '<span class="ag-when td">Today</span>'
         : '<span class="ag-when tm">Tomorrow</span>';
       const sub = esc([[L.config, L.ptype].filter(Boolean).join(" "), L.location, L.phone].filter(Boolean).join(" · "));
-      return `<button class="ag-row" data-ag="${L.id}"><div><div class="ag-name">${esc(L.name) || "(no name)"}</div><div class="ag-sub">${sub}</div></div>${when}</button>`;
+      return `<button class="ag-row" data-ag="${L.id}"><span class="ag-main"><span class="ag-name">${esc(L.name) || "(no name)"}</span><span class="ag-sub">${sub}</span></span>${when}</button>`;
     }).join("");
     html += `<div class="dashsec monthsec">
       <div class="month-head"><h3>Follow-ups — today &amp; tomorrow${agenda.length ? ` (${agenda.length})` : ""}</h3></div>
       ${agenda.length
-        ? `<div class="agenda">${agRows}${agenda.length > agShown.length ? `<button class="ag-more" data-aggo="due">Show all ${agenda.length} ›</button>` : ""}</div>`
+        ? `<div class="agenda">${agRows}</div>${agenda.length > agShown.length ? `<button class="ag-more" data-agmore>Show all ${agenda.length} ›</button>` : state.agAll && agenda.length > 5 ? '<button class="ag-more" data-agmore>Show fewer ‹</button>' : ""}`
         : '<div class="dash-note">Nothing scheduled for today or tomorrow. Pick leads from To Contact and set a follow-up.</div>'}
     </div>`;
 
@@ -852,7 +854,7 @@
     $("dash").appendChild(d);
     d.querySelectorAll(".tile[data-go]").forEach((t) => t.addEventListener("click", () => setView(t.dataset.go)));
     d.querySelectorAll("[data-ag]").forEach((b) => b.addEventListener("click", () => openPanel(b.dataset.ag)));
-    d.querySelectorAll("[data-aggo]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.aggo)));
+    d.querySelectorAll("[data-agmore]").forEach((b) => b.addEventListener("click", () => { state.agAll = !state.agAll; render(); }));
     d.querySelectorAll("[data-mn]").forEach((b) => b.addEventListener("click", () => {
       state.dashMonth = shiftMonth(state.dashMonth, Number(b.dataset.mn));
       render();
