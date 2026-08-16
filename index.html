@@ -173,6 +173,22 @@
   }
 
   /* ---------- Dashboard ---------- */
+  .goalbar {
+    margin-top: 16px; border-radius: 13px; padding: 15px 17px;
+    background: linear-gradient(120deg, var(--ink) 0%, var(--iris-deep) 100%);
+    color: #f2effc; box-shadow: var(--shadow-lift);
+  }
+  .goalbar .g-kick {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.75;
+  }
+  .goalbar .g-main {
+    font-family: var(--font-display); font-size: 21px; font-weight: 800;
+    letter-spacing: -0.01em; line-height: 1.25; margin-top: 3px;
+  }
+  .goalbar .g-sub { font-size: 12.5px; opacity: 0.88; margin-top: 6px; line-height: 1.55; }
+  .goalbar .g-days { font-family: var(--font-mono); font-weight: 600; }
+
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 16px; }
 
   .tile {
@@ -714,8 +730,19 @@
     const mPending = mTotal - mCalled;
     const mPct = mTotal ? Math.round(mCalled / mTotal * 100) : 0;
 
+    const now = new Date();
+    const yearEnd = new Date(now.getFullYear(), 11, 31);
+    const daysLeft = Math.max(1, Math.ceil((yearEnd - now) / 864e5));
+    const perDay = Math.round(5000000 / daysLeft);
+
     const d = document.createElement("div");
-    let html = `<div class="dashsec monthsec">
+    let html = `<div class="goalbar">
+      <div class="g-kick">Goal · ${now.getFullYear()}</div>
+      <div class="g-main">🎯 Earn ₹50 Lakh by 31 Dec — anyhow.</div>
+      <div class="g-sub"><span class="g-days">${daysLeft} days left</span> · that's about ₹${perDay.toLocaleString("en-IN")} a day from today. Every call counts.</div>
+    </div>`;
+
+    html += `<div class="dashsec monthsec">
       <div class="month-head">
         <h3>Monthly summary</h3>
         <div class="month-nav">
@@ -1113,26 +1140,48 @@
     return Number.isNaN(t) ? "" : new Date(t).toISOString().slice(0, 10);
   }
 
+  function matchSheetCols(headers) {
+    const col = {}, used = new Set();
+    for (const [field, aliases] of Object.entries(SHEET_COLS)) {
+      const i = headers.findIndex((h, idx) => h && !used.has(idx) && aliases.includes(h));
+      if (i >= 0) { col[field] = i; used.add(i); }
+    }
+    // fuzzy pass: header merely contains an alias ("Client Mobile No." → phone);
+    // longest aliases first so "Property Type" lands on ptype, not category's "type"
+    const pairs = Object.entries(SHEET_COLS)
+      .flatMap(([f, as]) => as.filter((a) => a.length >= 4).map((a) => [f, a]))
+      .sort((a, b) => b[1].length - a[1].length);
+    for (const [field, alias] of pairs) {
+      if (col[field] !== undefined) continue;
+      const i = headers.findIndex((h, idx) => h && !used.has(idx) && h.includes(alias));
+      if (i >= 0) { col[field] = i; used.add(i); }
+    }
+    return col;
+  }
+
   function importSheetRows(rows) {
     if (rows.length < 2) { toast("No lead rows found in that file"); return; }
     const normH = (h) => String(h ?? "").toLowerCase().replace(/[^a-z]/g, "");
-    const headers = rows[0].map(normH);
-    const col = {};
-    for (const [field, aliases] of Object.entries(SHEET_COLS)) {
-      const i = headers.findIndex((h) => aliases.includes(h));
-      if (i >= 0) col[field] = i;
+    // the header row isn't always row 1 (title rows, blank padding) — pick the early row matching the most known columns
+    let headRow = 0, col = {}, bestN = 0;
+    for (let r = 0; r < Math.min(rows.length - 1, 5); r++) {
+      const c = matchSheetCols(rows[r].map(normH));
+      const n = Object.keys(c).length;
+      if (n > bestN) { bestN = n; headRow = r; col = c; }
     }
-    if (col.name === undefined) { toast("Couldn't find a Name column — the first row must have headers like Name, Phone, Budget…"); return; }
+    if (col.name === undefined && col.phone === undefined) { toast("Couldn't find a Name or Phone column — the sheet needs a header row like Name, Phone, Budget…"); return; }
+    const rawHeaders = rows[headRow].map((h) => String(h ?? "").trim());
+    const mappedIdx = new Set(Object.values(col));
     const get = (row, f) => col[f] === undefined ? "" : String(row[col[f]] ?? "").trim();
     const ids = new Set(leads.map((l) => l.id));
     const phones = new Set(leads.map((l) => normPhone(l.phone)).filter(Boolean));
     const urgMap = { hot: "Hot", warm: "Warm", cold: "Cold", high: "Hot", medium: "Warm", low: "Cold" };
     let added = 0, skipped = 0;
-    for (const row of rows.slice(1)) {
-      const name = get(row, "name");
+    for (const row of rows.slice(headRow + 1)) {
+      const phone = get(row, "phone").replace(/\.0+$/, "");
+      const name = get(row, "name") || phone;
       if (!name) continue;
       const id = get(row, "id");
-      const phone = get(row, "phone").replace(/\.0+$/, "");
       const np = normPhone(phone);
       if ((id && ids.has(id)) || (np && phones.has(np))) { skipped++; continue; }
       const budget = Number(get(row, "budget").replace(/[^\d.]/g, "")) || 0;
@@ -1144,6 +1193,13 @@
       const outcomeRaw = get(row, "outcome").toLowerCase();
       let config = get(row, "config");
       if (/^\d+$/.test(config)) config += " BHK";
+      // columns the CRM has no field for still come along, tucked into requirements
+      const extras = [];
+      row.forEach((v, i) => {
+        const val = String(v ?? "").trim();
+        if (!val || mappedIdx.has(i)) return;
+        extras.push(rawHeaders[i] ? `${rawHeaders[i]}: ${val}` : val);
+      });
       leads.push({
         id: id || uid(), createdAt: Date.now(), updatedAt: Date.now(),
         name, phone, wa: np ? "91" + np : "", email: get(row, "email"),
@@ -1157,7 +1213,7 @@
         lastCalled: sheetDate(get(row, "lastCalled")),
         followUp: sheetDate(get(row, "followUp")) || null,
         attempts: Number(get(row, "attempts")) || 0,
-        requirements: get(row, "requirements"), notes: [],
+        requirements: [get(row, "requirements"), ...extras].filter(Boolean).join(" · "), notes: [],
       });
       if (id) ids.add(id);
       if (np) phones.add(np);
