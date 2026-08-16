@@ -438,6 +438,7 @@
     <div class="filters" id="filters" hidden>
       <input type="search" id="q" placeholder="Search name, phone, area…" autocomplete="off" aria-label="Search leads">
       <select id="fcat" aria-label="Category"><option value="">All types</option><option value="R">Rental</option><option value="S">Sale</option></select>
+      <select id="fkind" aria-label="Property kind"><option value="">All properties</option><option value="C">Commercial</option><option value="H">Residential</option></select>
       <select id="fzone" aria-label="Zone"><option value="">All zones</option></select>
       <select id="fstatus" aria-label="Status"><option value="">All statuses</option></select>
       <select id="fmonth" aria-label="Month"><option value="">All months</option></select>
@@ -566,7 +567,10 @@
   let syncCfg = loadJSON(SYNC_KEY, null);
   let editingId = null;
 
-  const state = { view: "dash", q: "", cat: "", zone: "", month: "", status: "", shown: 30, dashMonth: "" };
+  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", shown: 30, dashMonth: "" };
+
+  // commercial = commercial/industrial ptypes, incl. free-text ones from imported sheets
+  const isCommercial = (L) => /commercial|shop|showroom|office|warehouse|godown|industrial|retail/i.test(L.ptype || "");
 
   function persistLocal() {
     localStorage.setItem(STORE_KEY, JSON.stringify(leads));
@@ -672,6 +676,8 @@
       if (state.view === "due" && queueOf(L) !== "due") return false;
       if (state.view === "tocall" && queueOf(L) !== "tocall") return false;
       if (state.cat && L.category !== state.cat) return false;
+      if (state.kind === "C" && !isCommercial(L)) return false;
+      if (state.kind === "H" && isCommercial(L)) return false;
       if (state.zone && L.zone !== state.zone) return false;
       if (state.month && (L.leadDate || "").slice(0, 7) !== state.month) return false;
       if (state.status === "__texted") { if (!L.lastTexted || L.lastCalled) return false; }
@@ -1442,6 +1448,7 @@
   $("tabs").addEventListener("click", (e) => { const b = e.target.closest(".tab"); if (b) setView(b.dataset.v); });
   $("q").addEventListener("input", (e) => { state.q = e.target.value; state.shown = 30; render(); });
   $("fcat").addEventListener("change", (e) => { state.cat = e.target.value; state.shown = 30; render(); });
+  $("fkind").addEventListener("change", (e) => { state.kind = e.target.value; state.shown = 30; render(); });
   $("fzone").addEventListener("change", (e) => { state.zone = e.target.value; state.shown = 30; render(); });
   $("fstatus").addEventListener("change", (e) => { state.status = e.target.value; state.shown = 30; render(); });
   $("fmonth").addEventListener("change", (e) => { state.month = e.target.value; state.shown = 30; render(); });
