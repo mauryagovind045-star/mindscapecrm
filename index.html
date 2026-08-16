@@ -433,6 +433,7 @@
       <button class="tab" data-v="dash" aria-selected="true">Dashboard</button>
       <button class="tab" data-v="due" aria-selected="false">Due <span class="b" id="c-due">0</span></button>
       <button class="tab" data-v="tocall" aria-selected="false">To Contact <span class="b" id="c-tocall">0</span></button>
+      <button class="tab" data-v="sched" aria-selected="false">Scheduled <span class="b" id="c-sched">0</span></button>
       <button class="tab" data-v="all" aria-selected="false">All Leads</button>
     </div>
     <div class="filters" id="filters" hidden>
@@ -547,7 +548,7 @@
   const SYNC_KEY = "mindscape-sync-v1";   // shared with v1 so an existing token keeps working
   const SYNC_FILE = "leads.json";
 
-  const STATUSES = ["New", "Contacted", "Follow-Up", "Site Visit Scheduled", "Site Visit Done",
+  const STATUSES = ["New", "Texted", "Contacted", "Follow-Up", "Site Visit Scheduled", "Site Visit Done",
     "Negotiation", "Closed - Won", "Closed - Lost", "Not Reachable", "Junk"];
   const DONE = ["Closed - Won", "Closed - Lost", "Junk"];
   const OUTCOMES = ["", "Interested", "Not interested", "No answer", "Call back", "WhatsApp sent",
@@ -641,7 +642,7 @@
     if (DONE.includes(L.status)) return "done";
     if (L.followUp && L.followUp <= todayStr()) return "due";
     if (L.followUp) return "sched";
-    if (L.status === "New" && !L.lastCalled) return "tocall";
+    if ((L.status === "New" || L.status === "Texted") && !L.lastCalled) return "tocall";
     return "active";
   }
 
@@ -675,6 +676,7 @@
     return leads.filter((L) => {
       if (state.view === "due" && queueOf(L) !== "due") return false;
       if (state.view === "tocall" && queueOf(L) !== "tocall") return false;
+      if (state.view === "sched" && queueOf(L) !== "sched") return false;
       if (state.cat && L.category !== state.cat) return false;
       if (state.kind === "C" && !isCommercial(L)) return false;
       if (state.kind === "H" && isCommercial(L)) return false;
@@ -687,15 +689,21 @@
     });
   }
 
+  function viewSorted(f) {
+    // scheduled view reads like an agenda: nearest follow-up first
+    return state.view === "sched" ? [...f].sort((a, b) => (a.followUp || "").localeCompare(b.followUp || "")) : f;
+  }
+
   /* ---------- Rendering ---------- */
 
   function counts() {
-    let due = 0, tc = 0;
-    for (const L of leads) { const q = queueOf(L); if (q === "due") due++; else if (q === "tocall") tc++; }
+    let due = 0, tc = 0, sched = 0;
+    for (const L of leads) { const q = queueOf(L); if (q === "due") due++; else if (q === "tocall") tc++; else if (q === "sched") sched++; }
     $("c-due").textContent = due;
     $("c-due").classList.toggle("alert", due > 0 && state.view !== "due");
     $("c-tocall").textContent = tc;
-    return { due, tc };
+    $("c-sched").textContent = sched;
+    return { due, tc, sched };
   }
 
   function render() {
@@ -703,12 +711,13 @@
     $("filters").hidden = state.view === "dash";
     $("dash").innerHTML = ""; $("list").innerHTML = "";
     if (state.view === "dash") { renderDash(c); $("more").hidden = true; $("hint").textContent = ""; return; }
-    const f = filtered();
+    const f = viewSorted(filtered());
     const slice = f.slice(0, state.shown);
     if (!slice.length) {
       $("list").innerHTML = '<div class="empty">' + (leads.length === 0
         ? "No leads yet. Add one with + New, or turn on Sync to pull your data."
         : state.view === "due" ? "No follow-ups due — nice work." :
+          state.view === "sched" ? "No upcoming follow-ups scheduled. Use the +3d / +1w / +1mo buttons on a lead to plan one." :
           state.view === "tocall" ? "Every lead has been contacted or scheduled." :
           "Nothing matches these filters.") + "</div>";
     }
@@ -776,7 +785,7 @@
     html += `<div class="tiles">
       <button class="tile due" data-go="due"><div class="num">${c.due}</div><div class="lbl">Follow-ups due</div></button>
       <button class="tile tocall" data-go="tocall"><div class="num">${c.tc}</div><div class="lbl">Still to contact</div></button>
-      <button class="tile" data-go="all"><div class="num">${sched}</div><div class="lbl">Scheduled ahead</div></button>
+      <button class="tile" data-go="sched"><div class="num">${sched}</div><div class="lbl">Scheduled ahead</div></button>
       <button class="tile won"><div class="num">${won}</div><div class="lbl">Closed won</div></button>
     </div>`;
 
@@ -858,7 +867,7 @@
 
     c.querySelector(".btn.wa").addEventListener("click", () => {
       // let the wa.me link open first, then stamp today's date
-      setTimeout(() => { L.lastTexted = todayStr(); touch(L); save(); refreshCard(L, c); }, 0);
+      setTimeout(() => { L.lastTexted = todayStr(); if (L.status === "New") L.status = "Texted"; touch(L); save(); refreshCard(L, c); }, 0);
     });
 
     c.querySelector(".name").addEventListener("click", () => openPanel(L.id));
@@ -886,13 +895,13 @@
 
     c.querySelectorAll("[data-q]").forEach((b) => b.addEventListener("click", () => {
       const a = b.dataset.q;
-      if (a === "called") { L.lastCalled = todayStr(); if (L.status === "New") L.status = "Contacted"; L.attempts = (L.attempts || 0) + 1; }
-      if (a === "texted") L.lastTexted = todayStr();   // status stays put — a texted lead may still need a call
+      if (a === "called") { L.lastCalled = todayStr(); if (L.status === "New" || L.status === "Texted") L.status = "Contacted"; L.attempts = (L.attempts || 0) + 1; }
+      if (a === "texted") { L.lastTexted = todayStr(); if (L.status === "New") L.status = "Texted"; }
       if (a === "d3") L.followUp = addDays(3);
       if (a === "d7") L.followUp = addDays(7);
       if (a === "d30") L.followUp = addDays(30);
       if (a === "clear") L.followUp = null;
-      if (["d3", "d7", "d30"].includes(a) && L.status === "New") L.status = "Follow-Up";
+      if (["d3", "d7", "d30"].includes(a) && (L.status === "New" || L.status === "Texted")) L.status = "Follow-Up";
       touch(L); save(); refreshCard(L, c);
     }));
 
