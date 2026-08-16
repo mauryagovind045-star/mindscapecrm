@@ -275,6 +275,7 @@
   .tag.due { color: var(--overdue); background: var(--overdue-soft); }
   .tag.sched { color: var(--sched); background: var(--sched-soft); }
   .tag.rep { color: var(--ink-soft); background: var(--bg); }
+  .tag.txt { color: var(--wa-deep); background: #e2f5ea; }
 
   .req { color: var(--ink-soft); font-size: 13px; margin-top: 5px; }
   .req b { color: var(--ink); font-weight: 600; }
@@ -649,8 +650,9 @@
     if (zones.includes(zcur)) zsel.value = zcur;
 
     const ssel = $("fstatus"); const scur = ssel.value;
-    ssel.innerHTML = '<option value="">All statuses</option>' + STATUSES.map((s) => `<option>${s}</option>`).join("");
-    if (STATUSES.includes(scur)) ssel.value = scur;
+    ssel.innerHTML = '<option value="">All statuses</option>' + STATUSES.map((s) => `<option>${s}</option>`).join("")
+      + '<option value="__texted">Texted, not called</option>';
+    if (STATUSES.includes(scur) || scur === "__texted") ssel.value = scur;
 
     const months = [...new Set(leads.map((l) => (l.leadDate || "").slice(0, 7)).filter(Boolean))].sort().reverse();
     const msel = $("fmonth"); const mcur = msel.value;
@@ -672,7 +674,8 @@
       if (state.cat && L.category !== state.cat) return false;
       if (state.zone && L.zone !== state.zone) return false;
       if (state.month && (L.leadDate || "").slice(0, 7) !== state.month) return false;
-      if (state.status && L.status !== state.status) return false;
+      if (state.status === "__texted") { if (!L.lastTexted || L.lastCalled) return false; }
+      else if (state.status && L.status !== state.status) return false;
       if (q && !((L.name + " " + L.phone + " " + (L.email || "") + " " + L.location + " " + (L.ptype || "")).toLowerCase().includes(q))) return false;
       return true;
     });
@@ -819,6 +822,7 @@
       `<span class="tag ${L.category === "R" ? "r" : "s"}">${L.category === "R" ? "Rental" : "Sale"}</span>` +
       (L.urgency === "Hot" ? '<span class="tag hot">Hot</span>' : "") +
       (L.repeat ? '<span class="tag rep">Repeat</span>' : "") +
+      (L.lastTexted && !L.lastCalled ? '<span class="tag txt">Texted only</span>' : "") +
       (q === "due" ? '<span class="tag due">Due</span>' : q === "sched" ? `<span class="tag sched">${fmtD(L.followUp)}</span>` : "");
     const wa = L.wa || ("91" + normPhone(L.phone));
     c.innerHTML = `
@@ -834,8 +838,10 @@
         <div class="fld"><label>Outcome</label><select data-f="outcome">${OUTCOMES.map((o) => `<option value="${o}"${(L.outcome || "") === o ? " selected" : ""}>${o || "—"}</option>`).join("")}</select></div>
         <div class="fld"><label>Last called</label><input type="date" data-f="lastCalled" value="${L.lastCalled || ""}"></div>
         <div class="fld"><label>Next follow-up</label><div class="nf-row"><input type="date" data-f="followUp" value="${L.followUp || ""}"><button class="cal-btn" data-cal title="Add to Google Calendar">📅</button></div></div>
+        <div class="fld"><label>Last texted</label><input type="date" data-f="lastTexted" value="${L.lastTexted || ""}"></div>
         <div class="fld full"><label>Quick set</label><div class="quick">
           <button class="qbtn" data-q="called">Called today</button>
+          <button class="qbtn" data-q="texted">Texted today</button>
           <button class="qbtn" data-q="d3">+3d</button>
           <button class="qbtn" data-q="d7">+1w</button>
           <button class="qbtn" data-q="d30">+1mo</button>
@@ -843,6 +849,11 @@
         </div></div>
         <div class="fld full"><label>Requirements / notes</label><textarea data-f="requirements" placeholder="What they told you — budget flex, timeline, preferences…">${esc(L.requirements || "")}</textarea></div>
       </div>`;
+
+    c.querySelector(".btn.wa").addEventListener("click", () => {
+      // let the wa.me link open first, then stamp today's date
+      setTimeout(() => { L.lastTexted = todayStr(); touch(L); save(); refreshCard(L, c); }, 0);
+    });
 
     c.querySelector(".name").addEventListener("click", () => openPanel(L.id));
     c.querySelector(".name").addEventListener("keydown", (e) => { if (e.key === "Enter") openPanel(L.id); });
@@ -853,7 +864,7 @@
       el.addEventListener(ev, () => {
         L[f] = el.value || (f === "followUp" ? null : "");
         touch(L); save();
-        if (f === "status" || f === "followUp" || f === "lastCalled") refreshCard(L, c); else counts();
+        if (f === "status" || f === "followUp" || f === "lastCalled" || f === "lastTexted") refreshCard(L, c); else counts();
       });
     });
 
@@ -870,6 +881,7 @@
     c.querySelectorAll("[data-q]").forEach((b) => b.addEventListener("click", () => {
       const a = b.dataset.q;
       if (a === "called") { L.lastCalled = todayStr(); if (L.status === "New") L.status = "Contacted"; L.attempts = (L.attempts || 0) + 1; }
+      if (a === "texted") L.lastTexted = todayStr();   // status stays put — a texted lead may still need a call
       if (a === "d3") L.followUp = addDays(3);
       if (a === "d7") L.followUp = addDays(7);
       if (a === "d30") L.followUp = addDays(30);
@@ -955,7 +967,7 @@
       Object.assign(L, data);
       toast("Lead updated");
     } else {
-      leads.unshift({ id: uid(), createdAt: Date.now(), notes: [], attempts: 0, lastCalled: "", outcome: "", repeat: false, source: "Manual", ...data });
+      leads.unshift({ id: uid(), createdAt: Date.now(), notes: [], attempts: 0, lastCalled: "", lastTexted: "", outcome: "", repeat: false, source: "Manual", ...data });
       toast("Lead added");
     }
     save(); fillFilters(); render(); closePanel();
@@ -982,7 +994,7 @@
 
   function exportCSV() {
     const cols = ["id", "name", "phone", "email", "category", "config", "ptype", "location", "zone",
-      "budget", "leadDate", "status", "urgency", "outcome", "lastCalled", "followUp", "attempts", "requirements"];
+      "budget", "leadDate", "status", "urgency", "outcome", "lastCalled", "lastTexted", "followUp", "attempts", "requirements"];
     const cell = (v) => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
     const rows = [cols.join(",")];
     for (const L of leads) rows.push(cols.map((c) => cell(c === "category" ? (L.category === "R" ? "Rental" : "Sale") : c === "requirements" ? (L.requirements || "").replace(/\n/g, " ") : L[c])).join(","));
@@ -1120,6 +1132,7 @@
     urgency: ["urgency", "priority"],
     outcome: ["outcome"],
     lastCalled: ["lastcalled", "lastcall", "lastcalldate"],
+    lastTexted: ["lasttexted", "lasttext", "texted", "textdate", "lastmessaged", "lastwhatsapp", "whatsappdate", "messagedate"],
     followUp: ["followup", "nextfollowup", "followupdate", "nextfollowupdate"],
     attempts: ["attempts", "callattempts"],
     source: ["source", "leadsource"],
@@ -1211,6 +1224,7 @@
         outcome: OUTCOMES.find((o) => o && o.toLowerCase() === outcomeRaw) || "",
         urgency: urgMap[get(row, "urgency").toLowerCase()] || "",
         lastCalled: sheetDate(get(row, "lastCalled")),
+        lastTexted: sheetDate(get(row, "lastTexted")),
         followUp: sheetDate(get(row, "followUp")) || null,
         attempts: Number(get(row, "attempts")) || 0,
         requirements: [get(row, "requirements"), ...extras].filter(Boolean).join(" · "), notes: [],
