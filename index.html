@@ -317,6 +317,9 @@
   .tag.ro { color: var(--sched); background: var(--sched-soft); }
   .tag.so { color: var(--overdue); background: var(--overdue-soft); }
   .tag.na { color: var(--muted); background: var(--bg); }
+  .tag.bk { color: #8a5a00; background: #f7edd8; }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 13.5px; margin: 4px 0 12px; cursor: pointer; }
+  .check input { width: 16px; height: 16px; accent-color: var(--iris); }
 
   /* Properties view */
   .props-head { margin-top: 14px; display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
@@ -510,6 +513,7 @@
       <select id="fzone" aria-label="Zone"><option value="">All zones</option></select>
       <select id="fstatus" aria-label="Status"><option value="">All statuses</option></select>
       <select id="fmonth" aria-label="Month"><option value="">All months</option></select>
+      <select id="fbroker" aria-label="Lead source"><option value="">Broker + Direct</option><option value="B">Broker leads</option><option value="D">Direct leads</option><option value="R">Repeat leads</option></select>
     </div>
   </header>
 
@@ -559,6 +563,8 @@
         <div class="field"><label for="p-leaddate">Lead date</label><input id="p-leaddate" type="date"></div>
         <div class="field"><label for="p-followup">Next follow-up</label><input id="p-followup" type="date"></div>
       </div>
+      <label class="check"><input type="checkbox" id="p-broker"> This lead came through a broker</label>
+      <label class="check"><input type="checkbox" id="p-repeat"> Repeat lead (enquired before)</label>
       <div class="field"><label for="p-req">Requirements / notes from calls</label><textarea id="p-req" rows="3"></textarea></div>
     </form>
     <section class="notes-section" id="notes-section" hidden>
@@ -686,7 +692,7 @@
   let editingId = null;
   let editingPropId = null;
 
-  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", shown: 30, dashMonth: "", pq: "", pcat: "", pstat: "" };
+  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", broker: "", shown: 30, dashMonth: "", pq: "", pcat: "", pstat: "" };
 
   // commercial = commercial/industrial ptypes, incl. free-text ones from imported sheets
   const isCommercial = (L) => /commercial|shop|showroom|office|warehouse|godown|industrial|retail/i.test(L.ptype || "");
@@ -804,6 +810,9 @@
       if (state.month && (L.leadDate || "").slice(0, 7) !== state.month) return false;
       if (state.status === "__texted") { if (!L.lastTexted || L.lastCalled) return false; }
       else if (state.status && L.status !== state.status) return false;
+      if (state.broker === "B" && !L.broker) return false;
+      if (state.broker === "D" && L.broker) return false;
+      if (state.broker === "R" && !L.repeat) return false;
       if (q) {
         const hay = (L.name + " " + L.phone + " " + (L.email || "") + " " + L.location + " " + (L.ptype || "")).toLowerCase();
         const qd = q.replace(/\D/g, "");
@@ -848,8 +857,8 @@
           state.view === "tocall" ? "Every lead has been contacted or scheduled." :
           'Nothing matches these filters.<br><button class="btn" id="clear-filters" style="margin-top:12px">Clear filters</button>') + "</div>";
       $("clear-filters")?.addEventListener("click", () => {
-        state.cat = state.kind = state.zone = state.status = state.month = "";
-        $("fcat").value = $("fkind").value = $("fzone").value = $("fstatus").value = $("fmonth").value = "";
+        state.cat = state.kind = state.zone = state.status = state.month = state.broker = "";
+        $("fcat").value = $("fkind").value = $("fzone").value = $("fstatus").value = $("fmonth").value = $("fbroker").value = "";
         state.shown = 30; render();
       });
     }
@@ -997,11 +1006,12 @@
   function cardEl(L) {
     const q = queueOf(L);
     const c = document.createElement("div");
-    c.className = "card" + (q === "done" ? " done" : "");
+    c.className = "card" + (q === "done" || L.repeat ? " done" : "");
     const badges =
       `<span class="tag ${L.category === "R" ? "r" : "s"}">${L.category === "R" ? "Rental" : "Sale"}</span>` +
       (L.urgency === "Hot" ? '<span class="tag hot">Hot</span>' : "") +
       (L.repeat ? '<span class="tag rep">Repeat</span>' : "") +
+      (L.broker ? '<span class="tag bk">Broker</span>' : "") +
       (L.lastTexted && !L.lastCalled ? '<span class="tag txt">Texted only</span>' : "") +
       (q === "due" ? '<span class="tag due">Due</span>' : q === "sched" ? `<span class="tag sched">${fmtD(L.followUp)}</span>` : "");
     const wa = L.wa || ("91" + normPhone(L.phone));
@@ -1022,6 +1032,8 @@
         <div class="fld full"><label>Quick set</label><div class="quick">
           <button class="qbtn" data-q="called">Called today</button>
           <button class="qbtn" data-q="texted">Texted today</button>
+          <button class="qbtn" data-q="broker">${L.broker ? "Broker ✓" : "Broker"}</button>
+          <button class="qbtn" data-q="repeat">${L.repeat ? "Repeat ✓" : "Repeat"}</button>
           <button class="qbtn" data-q="d3">+3d</button>
           <button class="qbtn" data-q="d7">+1w</button>
           <button class="qbtn" data-q="d30">+1mo</button>
@@ -1062,6 +1074,8 @@
       const a = b.dataset.q;
       if (a === "called") { L.lastCalled = todayStr(); if (L.status === "New" || L.status === "Texted") L.status = "Contacted"; L.attempts = (L.attempts || 0) + 1; }
       if (a === "texted") { L.lastTexted = todayStr(); if (L.status === "New") L.status = "Texted"; }
+      if (a === "broker") L.broker = !L.broker;
+      if (a === "repeat") L.repeat = !L.repeat;
       if (a === "d3") L.followUp = addDays(3);
       if (a === "d7") L.followUp = addDays(7);
       if (a === "d30") L.followUp = addDays(30);
@@ -1255,6 +1269,8 @@
     $("p-leaddate").value = L?.leadDate || todayStr();
     $("p-followup").value = L?.followUp || "";
     $("p-req").value = L?.requirements || "";
+    $("p-broker").checked = !!L?.broker;
+    $("p-repeat").checked = !!L?.repeat;
     $("delete-lead").hidden = !L;
     $("notes-section").hidden = !L;
     if (L) renderNotes(L);
@@ -1296,6 +1312,8 @@
       leadDate: $("p-leaddate").value || todayStr(),
       followUp: $("p-followup").value || null,
       requirements: $("p-req").value.trim(),
+      broker: $("p-broker").checked,
+      repeat: $("p-repeat").checked,
       updatedAt: Date.now(),
     };
     data.wa = data.phone.startsWith("+") ? data.phone.replace(/\D/g, "") : "91" + normPhone(data.phone);
@@ -1332,7 +1350,7 @@
 
   function exportCSV() {
     const cols = ["id", "name", "phone", "email", "category", "config", "ptype", "location", "zone",
-      "budget", "leadDate", "status", "urgency", "outcome", "lastCalled", "lastTexted", "followUp", "attempts", "requirements"];
+      "budget", "leadDate", "status", "urgency", "outcome", "lastCalled", "lastTexted", "followUp", "attempts", "broker", "requirements"];
     const cell = (v) => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
     const rows = [cols.join(",")];
     for (const L of leads) rows.push(cols.map((c) => cell(c === "category" ? (L.category === "R" ? "Rental" : "Sale") : c === "requirements" ? (L.requirements || "").replace(/\n/g, " ") : L[c])).join(","));
@@ -1475,6 +1493,7 @@
     outcome: ["outcome"],
     lastCalled: ["lastcalled", "lastcall", "lastcalldate"],
     lastTexted: ["lasttexted", "lasttext", "texted", "textdate", "lastmessaged", "lastwhatsapp", "whatsappdate", "messagedate"],
+    broker: ["broker", "brokerlead", "viabroker", "directindirect", "channel"],
     followUp: ["followup", "nextfollowup", "followupdate", "nextfollowupdate"],
     attempts: ["attempts", "callattempts"],
     source: ["source", "leadsource"],
@@ -1569,6 +1588,7 @@
         lastTexted: sheetDate(get(row, "lastTexted")),
         followUp: sheetDate(get(row, "followUp")) || null,
         attempts: Number(get(row, "attempts")) || 0,
+        broker: /^(y|yes|true|1|broker|indirect)/i.test(get(row, "broker")),
         requirements: [get(row, "requirements"), ...extras].filter(Boolean).join(" · "), notes: [],
       });
       if (id) ids.add(id);
@@ -1799,6 +1819,7 @@
   $("fzone").addEventListener("change", (e) => { state.zone = e.target.value; state.shown = 30; render(); });
   $("fstatus").addEventListener("change", (e) => { state.status = e.target.value; state.shown = 30; render(); });
   $("fmonth").addEventListener("change", (e) => { state.month = e.target.value; state.shown = 30; render(); });
+  $("fbroker").addEventListener("change", (e) => { state.broker = e.target.value; state.shown = 30; render(); });
   $("more").addEventListener("click", () => { state.shown += 30; render(); });
 
   $("new-lead-btn").addEventListener("click", () => openPanel(null));
