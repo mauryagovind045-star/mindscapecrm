@@ -804,7 +804,12 @@
       if (state.month && (L.leadDate || "").slice(0, 7) !== state.month) return false;
       if (state.status === "__texted") { if (!L.lastTexted || L.lastCalled) return false; }
       else if (state.status && L.status !== state.status) return false;
-      if (q && !((L.name + " " + L.phone + " " + (L.email || "") + " " + L.location + " " + (L.ptype || "")).toLowerCase().includes(q))) return false;
+      if (q) {
+        const hay = (L.name + " " + L.phone + " " + (L.email || "") + " " + L.location + " " + (L.ptype || "")).toLowerCase();
+        const qd = q.replace(/\D/g, "");
+        const phoneHit = qd.length >= 4 && String(L.phone || "").replace(/\D/g, "").includes(qd);
+        if (!hay.includes(q) && !phoneHit) return false;
+      }
       return true;
     });
   }
@@ -841,7 +846,12 @@
         : state.view === "due" ? "No follow-ups due — nice work." :
           state.view === "sched" ? "No follow-ups planned. Use the +3d / +1w / +1mo buttons on a lead to schedule one." :
           state.view === "tocall" ? "Every lead has been contacted or scheduled." :
-          "Nothing matches these filters.") + "</div>";
+          'Nothing matches these filters.<br><button class="btn" id="clear-filters" style="margin-top:12px">Clear filters</button>') + "</div>";
+      $("clear-filters")?.addEventListener("click", () => {
+        state.cat = state.kind = state.zone = state.status = state.month = "";
+        $("fcat").value = $("fkind").value = $("fzone").value = $("fstatus").value = $("fmonth").value = "";
+        state.shown = 30; render();
+      });
     }
     for (const L of slice) $("list").appendChild(cardEl(L));
     $("more").hidden = f.length <= state.shown;
