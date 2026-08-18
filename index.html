@@ -674,6 +674,7 @@
     "Commercial Office", "Commercial Shop / Showroom", "Warehouse / Godown", "Industrial Shed"];
   const PROPS_KEY = "mindscape-props-v1";
   const PROP_TOMB_KEY = "mindscape-prop-tombs-v1";
+  const OUTREACH_KEY = "mindscape-outreach-v1";
   const PSTATUSES = ["Available", "On Hold", "Rented Out", "Sold", "Not Available"];
   const PSTATUS_TAG = { "Available": "av", "On Hold": "oh", "Rented Out": "ro", "Sold": "so", "Not Available": "na" };
 
@@ -688,6 +689,7 @@
   let tombstones = loadJSON(TOMB_KEY, {});
   let props = loadJSON(PROPS_KEY, []);
   let propTombs = loadJSON(PROP_TOMB_KEY, {});
+  let outreach = loadJSON(OUTREACH_KEY, {});   // "YYYY-MM-DD" -> [lead ids reached that day]
   let syncCfg = loadJSON(SYNC_KEY, null);
   let editingId = null;
   let editingPropId = null;
@@ -702,6 +704,13 @@
     localStorage.setItem(TOMB_KEY, JSON.stringify(tombstones));
     localStorage.setItem(PROPS_KEY, JSON.stringify(props));
     localStorage.setItem(PROP_TOMB_KEY, JSON.stringify(propTombs));
+    localStorage.setItem(OUTREACH_KEY, JSON.stringify(outreach));
+  }
+
+  function logReach(id) {
+    const d = todayStr();
+    const arr = outreach[d] || (outreach[d] = []);
+    if (!arr.includes(id)) arr.push(id);
   }
 
   function save() { persistLocal(); scheduleSync(); }
@@ -949,6 +958,20 @@
       </div>
     </div>`;
 
+    const reachDays = [];
+    for (let i = 0; i < 7; i++) {
+      const dt = new Date(); dt.setDate(dt.getDate() - i);
+      const ds = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+      const label = i === 0 ? "Today" : i === 1 ? "Yesterday" : dt.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+      reachDays.push({ label, n: (outreach[ds] || []).length });
+    }
+    const mxR = Math.max(1, ...reachDays.map((r) => r.n));
+    html += `<div class="dashsec monthsec">
+      <div class="month-head"><h3>Daily reach-outs</h3><span class="mn-label">${reachDays[0].n} today</span></div>
+      ${reachDays.map((r) => `<div class="barrow"><div class="k">${r.label}</div><div class="track"><div class="fill" style="width:${Math.round(r.n / mxR * 100)}%"></div></div><div class="v">${r.n}</div></div>`).join("")}
+      <div class="dash-note" style="margin-top:6px">Unique clients you called or texted each day — logged automatically from Called today, Texted today and WhatsApp taps.</div>
+    </div>`;
+
     html += `<div class="tiles">
       <button class="tile due" data-go="due"><div class="num">${c.due}</div><div class="lbl">Follow-ups due</div></button>
       <button class="tile tocall" data-go="tocall"><div class="num">${c.tc}</div><div class="lbl">Still to contact</div></button>
@@ -1044,7 +1067,7 @@
 
     c.querySelector(".btn.wa").addEventListener("click", () => {
       // let the wa.me link open first, then stamp today's date
-      setTimeout(() => { L.lastTexted = todayStr(); if (L.status === "New") L.status = "Texted"; touch(L); save(); refreshCard(L, c); }, 0);
+      setTimeout(() => { L.lastTexted = todayStr(); if (L.status === "New") L.status = "Texted"; logReach(L.id); touch(L); save(); refreshCard(L, c); }, 0);
     });
 
     c.querySelector(".name").addEventListener("click", () => openPanel(L.id));
@@ -1055,6 +1078,7 @@
       const ev = el.tagName === "TEXTAREA" ? "change" : "change";
       el.addEventListener(ev, () => {
         L[f] = el.value || (f === "followUp" ? null : "");
+        if ((f === "lastCalled" || f === "lastTexted") && el.value === todayStr()) logReach(L.id);
         touch(L); save();
         if (f === "status" || f === "followUp" || f === "lastCalled" || f === "lastTexted") refreshCard(L, c); else counts();
       });
@@ -1072,8 +1096,8 @@
 
     c.querySelectorAll("[data-q]").forEach((b) => b.addEventListener("click", () => {
       const a = b.dataset.q;
-      if (a === "called") { L.lastCalled = todayStr(); if (L.status === "New" || L.status === "Texted") L.status = "Contacted"; L.attempts = (L.attempts || 0) + 1; }
-      if (a === "texted") { L.lastTexted = todayStr(); if (L.status === "New") L.status = "Texted"; }
+      if (a === "called") { L.lastCalled = todayStr(); if (L.status === "New" || L.status === "Texted") L.status = "Contacted"; L.attempts = (L.attempts || 0) + 1; logReach(L.id); }
+      if (a === "texted") { L.lastTexted = todayStr(); if (L.status === "New") L.status = "Texted"; logReach(L.id); }
       if (a === "broker") L.broker = !L.broker;
       if (a === "repeat") L.repeat = !L.repeat;
       if (a === "d3") L.followUp = addDays(3);
@@ -1359,7 +1383,7 @@
   }
 
   function exportJSON() {
-    download(`mindscape-backup-${todayStr()}.json`, JSON.stringify({ version: 2, leads, tombstones, props, propTombstones: propTombs }), "application/json");
+    download(`mindscape-backup-${todayStr()}.json`, JSON.stringify({ version: 2, leads, tombstones, props, propTombstones: propTombs, outreach }), "application/json");
     toast("Backup exported");
   }
 
@@ -1711,10 +1735,19 @@
     }
     const mergedProps = [...pById.values()].filter((p) => !(pTombs[p.id] > leadTime(p)));
 
-    return { leads: mergedLeads, tombstones: tombs, props: mergedProps, propTombstones: pTombs };
+    const mergedReach = {};
+    for (const src of [remote?.outreach || {}, outreach]) {
+      for (const [day, ids] of Object.entries(src)) {
+        if (!Array.isArray(ids)) continue;
+        const set = new Set([...(mergedReach[day] || []), ...ids]);
+        mergedReach[day] = [...set];
+      }
+    }
+
+    return { leads: mergedLeads, tombstones: tombs, props: mergedProps, propTombstones: pTombs, outreach: mergedReach };
   }
 
-  function serialize() { return JSON.stringify({ version: 2, leads, tombstones, props, propTombstones: propTombs }); }
+  function serialize() { return JSON.stringify({ version: 2, leads, tombstones, props, propTombstones: propTombs, outreach }); }
 
   function setSyncStatus(stateName, msg) {
     $("sync-dot").className = "sync-dot" + (stateName ? " " + stateName : "");
@@ -1759,9 +1792,10 @@
       const merged = mergeRemote(remote);
       leads = merged.leads; tombstones = merged.tombstones;
       props = merged.props; propTombs = merged.propTombstones;
+      outreach = merged.outreach;
       persistLocal(); fillFilters(); render();
       const body = serialize();
-      const remoteBody = remote && remote.version === 2 ? JSON.stringify({ version: 2, leads: remote.leads, tombstones: remote.tombstones || {}, props: remote.props || [], propTombstones: remote.propTombstones || {} }) : null;
+      const remoteBody = remote && remote.version === 2 ? JSON.stringify({ version: 2, leads: remote.leads, tombstones: remote.tombstones || {}, props: remote.props || [], propTombstones: remote.propTombstones || {}, outreach: remote.outreach || {} }) : null;
       if (body !== remoteBody) {
         const put = await fetch(url, {
           method: "PUT", headers,
