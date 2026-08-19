@@ -814,6 +814,7 @@
       if (state.view === "due" && queueOf(L) !== "due") return false;
       if (state.view === "tocall" && queueOf(L) !== "tocall") return false;
       if (state.view === "sched" && !["sched", "due"].includes(queueOf(L))) return false;
+      if (state.view === "calls" && (!L.callOn || DONE.includes(L.status))) return false;
       if (state.cat && L.category !== state.cat) return false;
       if (state.kind === "C" && !isCommercial(L)) return false;
       if (state.kind === "H" && isCommercial(L)) return false;
@@ -837,7 +838,8 @@
 
   function viewSorted(f) {
     // scheduled view reads like an agenda: nearest follow-up first
-    const base = state.view === "sched" ? [...f].sort((a, b) => (a.followUp || "").localeCompare(b.followUp || "")) : f;
+    const base = state.view === "sched" ? [...f].sort((a, b) => (a.followUp || "").localeCompare(b.followUp || ""))
+      : state.view === "calls" ? [...f].sort((a, b) => (a.callOn || "").localeCompare(b.callOn || "")) : f;
     // focused leads float to the top of every list (stable sort keeps the rest in order)
     return [...base].sort((a, b) => (b.focus ? 1 : 0) - (a.focus ? 1 : 0));
   }
@@ -868,6 +870,7 @@
         ? "No leads yet. Add one with + New, or turn on Sync to pull your data."
         : state.view === "due" ? "No follow-ups due — nice work." :
           state.view === "sched" ? "No follow-ups planned. Use the +3d / +1w / +1mo buttons on a lead to schedule one." :
+          state.view === "calls" ? "No clients marked for calling. Tap Call tmrw on a lead, or set its Call on date." :
           state.view === "tocall" ? "Every lead has been contacted or scheduled." :
           'Nothing matches these filters.<br><button class="btn" id="clear-filters" style="margin-top:12px">Clear filters</button>') + "</div>";
       $("clear-filters")?.addEventListener("click", () => {
@@ -982,6 +985,7 @@
       <button class="tile tocall" data-go="tocall"><div class="num">${c.tc}</div><div class="lbl">Still to contact</div></button>
       <button class="tile" data-go="sched"><div class="num">${sched}</div><div class="lbl">Scheduled ahead</div></button>
       <button class="tile won"><div class="num">${won}</div><div class="lbl">Closed won</div></button>
+      <button class="tile tocall" data-go="calls"><div class="num">${leads.filter((L) => L.callOn && !DONE.includes(L.status)).length}</div><div class="lbl">Marked to call</div></button>
       <button class="tile" data-go="props"><div class="num">${props.filter((p) => p.status === "Available").length}</div><div class="lbl">Properties available</div></button>
     </div>`;
 
@@ -1042,7 +1046,10 @@
       (L.repeat ? '<span class="tag rep">Repeat</span>' : "") +
       (L.broker ? '<span class="tag bk">Broker</span>' : "") +
       (L.lastTexted && !L.lastCalled ? '<span class="tag txt">Texted only</span>' : "") +
-      (q === "due" ? '<span class="tag due">Due</span>' : q === "sched" ? `<span class="tag sched">${fmtD(L.followUp)}</span>` : "");
+      (q === "due" ? '<span class="tag due">Due</span>' : q === "sched" ? `<span class="tag sched">${fmtD(L.followUp)}</span>` : "") +
+      (L.callOn && !DONE.includes(L.status) ? (L.callOn <= todayStr()
+        ? '<span class="tag due">📞 Call today</span>'
+        : `<span class="tag sched">📞 Call ${fmtD(L.callOn)}</span>`) : "");
     const wa = L.wa || ("91" + normPhone(L.phone));
     c.innerHTML = `
       <div class="top"><span class="name" role="button" tabindex="0">${esc(L.name) || "(no name)"}</span>${badges}</div>
@@ -1058,9 +1065,11 @@
         <div class="fld"><label>Last called</label><input type="date" data-f="lastCalled" value="${L.lastCalled || ""}"></div>
         <div class="fld"><label>Next follow-up</label><div class="nf-row"><input type="date" data-f="followUp" value="${L.followUp || ""}"><button class="cal-btn" data-cal title="Add to Google Calendar">📅</button></div></div>
         <div class="fld"><label>Last texted</label><input type="date" data-f="lastTexted" value="${L.lastTexted || ""}"></div>
+        <div class="fld"><label>Call on</label><input type="date" data-f="callOn" value="${L.callOn || ""}"></div>
         <div class="fld full"><label>Quick set</label><div class="quick">
           <button class="qbtn" data-q="called">Called today</button>
           <button class="qbtn" data-q="texted">Texted today</button>
+          <button class="qbtn" data-q="calltmrw">Call tmrw</button>
           <button class="qbtn" data-q="focus">${L.focus ? "★ Focus ✓" : "Focus"}</button>
           <button class="qbtn" data-q="broker">${L.broker ? "Broker ✓" : "Broker"}</button>
           <button class="qbtn" data-q="repeat">${L.repeat ? "Repeat ✓" : "Repeat"}</button>
@@ -1087,7 +1096,7 @@
         L[f] = el.value || (f === "followUp" ? null : "");
         if ((f === "lastCalled" || f === "lastTexted") && el.value === todayStr()) logReach(L.id);
         touch(L); save();
-        if (f === "status" || f === "followUp" || f === "lastCalled" || f === "lastTexted") refreshCard(L, c); else counts();
+        if (f === "status" || f === "followUp" || f === "lastCalled" || f === "lastTexted" || f === "callOn") refreshCard(L, c); else counts();
       });
     });
 
@@ -1103,7 +1112,8 @@
 
     c.querySelectorAll("[data-q]").forEach((b) => b.addEventListener("click", () => {
       const a = b.dataset.q;
-      if (a === "called") { L.lastCalled = todayStr(); if (L.status === "New" || L.status === "Texted") L.status = "Contacted"; L.attempts = (L.attempts || 0) + 1; logReach(L.id); }
+      if (a === "called") { L.lastCalled = todayStr(); if (L.status === "New" || L.status === "Texted") L.status = "Contacted"; L.attempts = (L.attempts || 0) + 1; logReach(L.id); if (L.callOn && L.callOn <= todayStr()) L.callOn = ""; }
+      if (a === "calltmrw") L.callOn = addDays(1);
       if (a === "texted") { L.lastTexted = todayStr(); if (L.status === "New") L.status = "Texted"; logReach(L.id); }
       if (a === "broker") L.broker = !L.broker;
       if (a === "repeat") L.repeat = !L.repeat;
@@ -1113,7 +1123,8 @@
       if (a === "d30") L.followUp = addDays(30);
       if (a === "clear") L.followUp = null;
       if (["d3", "d7", "d30"].includes(a) && (L.status === "New" || L.status === "Texted")) L.status = "Follow-Up";
-      touch(L); save(); refreshCard(L, c);
+      touch(L); save();
+      if (state.view === "calls" && !L.callOn) render(); else refreshCard(L, c);
     }));
 
     return c;
@@ -1384,7 +1395,7 @@
 
   function exportCSV() {
     const cols = ["id", "name", "phone", "email", "category", "config", "ptype", "location", "zone",
-      "budget", "leadDate", "status", "urgency", "outcome", "lastCalled", "lastTexted", "followUp", "attempts", "broker", "focus", "requirements"];
+      "budget", "leadDate", "status", "urgency", "outcome", "lastCalled", "lastTexted", "followUp", "callOn", "attempts", "broker", "focus", "requirements"];
     const cell = (v) => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
     const rows = [cols.join(",")];
     for (const L of leads) rows.push(cols.map((c) => cell(c === "category" ? (L.category === "R" ? "Rental" : "Sale") : c === "requirements" ? (L.requirements || "").replace(/\n/g, " ") : L[c])).join(","));
@@ -1528,6 +1539,7 @@
     lastCalled: ["lastcalled", "lastcall", "lastcalldate"],
     lastTexted: ["lasttexted", "lasttext", "texted", "textdate", "lastmessaged", "lastwhatsapp", "whatsappdate", "messagedate"],
     broker: ["broker", "brokerlead", "viabroker", "directindirect", "channel"],
+    callOn: ["callon", "calldate", "nextcall", "callscheduled"],
     followUp: ["followup", "nextfollowup", "followupdate", "nextfollowupdate"],
     attempts: ["attempts", "callattempts"],
     source: ["source", "leadsource"],
@@ -1621,6 +1633,7 @@
         lastCalled: sheetDate(get(row, "lastCalled")),
         lastTexted: sheetDate(get(row, "lastTexted")),
         followUp: sheetDate(get(row, "followUp")) || null,
+        callOn: sheetDate(get(row, "callOn")),
         attempts: Number(get(row, "attempts")) || 0,
         broker: /^(y|yes|true|1|broker|indirect)/i.test(get(row, "broker")),
         requirements: [get(row, "requirements"), ...extras].filter(Boolean).join(" · "), notes: [],
