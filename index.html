@@ -1597,17 +1597,29 @@
     const rawHeaders = rows[headRow].map((h) => String(h ?? "").trim());
     const mappedIdx = new Set(Object.values(col));
     const get = (row, f) => col[f] === undefined ? "" : String(row[col[f]] ?? "").trim();
-    const ids = new Set(leads.map((l) => l.id));
-    const phones = new Set(leads.map((l) => normPhone(l.phone)).filter(Boolean));
+    const byId = new Map(leads.map((l) => [l.id, l]));
+    const byPhone = new Map();
+    for (const l of leads) { const p = normPhone(l.phone); if (p && !byPhone.has(p)) byPhone.set(p, l); }
     const urgMap = { hot: "Hot", warm: "Warm", cold: "Cold", high: "Hot", medium: "Warm", low: "Cold" };
-    let added = 0, skipped = 0;
+    let added = 0, skipped = 0, updated = 0;
     for (const row of rows.slice(headRow + 1)) {
       const phone = get(row, "phone").replace(/\.0+$/, "");
       const name = get(row, "name") || phone;
       if (!name) continue;
       const id = get(row, "id");
       const np = normPhone(phone);
-      if ((id && ids.has(id)) || (np && phones.has(np))) { skipped++; continue; }
+      const existing = (id && byId.get(id)) || (np && byPhone.get(np));
+      if (existing) {
+        // backfill blanks on the lead we already have — never overwrite anything
+        let cfg = get(row, "config");
+        if (/^\d+$/.test(cfg)) cfg += " BHK";
+        const fill = { project: get(row, "project"), email: get(row, "email"), config: cfg,
+          ptype: get(row, "ptype"), location: get(row, "location"), zone: get(row, "zone") };
+        let changed = false;
+        for (const [k, v] of Object.entries(fill)) if (v && !existing[k]) { existing[k] = v; changed = true; }
+        if (changed) { existing.updatedAt = Date.now(); updated++; } else skipped++;
+        continue;
+      }
       const budget = Number(get(row, "budget").replace(/[^\d.]/g, "")) || 0;
       const catRaw = get(row, "category").toLowerCase();
       const category = /^(s|buy|purchase|resale)/.test(catRaw) ? "S"
@@ -1642,14 +1654,17 @@
         broker: /^(y|yes|true|1|broker|indirect)/i.test(get(row, "broker")),
         requirements: [get(row, "requirements"), ...extras].filter(Boolean).join(" · "), notes: [],
       });
-      if (id) ids.add(id);
-      if (np) phones.add(np);
+      const L = leads[leads.length - 1];
+      if (id) byId.set(id, L);
+      if (np) byPhone.set(np, L);
       added++;
     }
     save(); fillFilters(); render();
-    toast(added
-      ? `Imported ${added} lead${added === 1 ? "" : "s"}${skipped ? `, skipped ${skipped} duplicate${skipped === 1 ? "" : "s"}` : ""}`
-      : skipped ? "All those leads are already here" : "No leads found in that file");
+    const parts = [];
+    if (added) parts.push(`Imported ${added} lead${added === 1 ? "" : "s"}`);
+    if (updated) parts.push(`filled details on ${updated} existing`);
+    if (skipped) parts.push(`skipped ${skipped} duplicate${skipped === 1 ? "" : "s"}`);
+    toast(parts.length ? parts.join(", ") : "No leads found in that file");
   }
 
   function importSheet(file) {
