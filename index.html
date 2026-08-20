@@ -555,6 +555,7 @@
         <div class="field"><label for="p-location">Location</label><input id="p-location" list="loc-options"><datalist id="loc-options"></datalist></div>
         <div class="field"><label for="p-zone">Zone</label><input id="p-zone" list="zone-options"><datalist id="zone-options"></datalist></div>
       </div>
+      <div class="field"><label for="p-project">Project / society enquired about</label><input id="p-project" placeholder="e.g. Models Exotica"></div>
       <div class="field-row">
         <div class="field"><label for="p-status">Status</label><select id="p-status"></select></div>
         <div class="field"><label for="p-urgency">Urgency</label>
@@ -827,7 +828,7 @@
       if (state.broker === "R" && !L.repeat) return false;
       if (state.broker === "F" && !L.focus) return false;
       if (q) {
-        const hay = (L.name + " " + L.phone + " " + (L.email || "") + " " + L.location + " " + (L.ptype || "")).toLowerCase();
+        const hay = (L.name + " " + L.phone + " " + (L.email || "") + " " + L.location + " " + (L.project || "") + " " + (L.ptype || "")).toLowerCase();
         const qd = q.replace(/\D/g, "");
         const phoneHit = qd.length >= 4 && String(L.phone || "").replace(/\D/g, "").includes(qd);
         if (!hay.includes(q) && !phoneHit) return false;
@@ -1053,7 +1054,7 @@
     const wa = L.wa || ("91" + normPhone(L.phone));
     c.innerHTML = `
       <div class="top"><span class="name" role="button" tabindex="0">${esc(L.name) || "(no name)"}</span>${badges}</div>
-      <div class="req"><b>${esc((L.config ? L.config + " " : "") + (L.ptype || ""))}</b>${L.location ? " in <b>" + esc(L.location) + "</b>" : ""}${budgetStr(L) ? " · " + budgetStr(L) : ""}${L.phone ? " · " + esc(L.phone) : ""}</div>
+      <div class="req"><b>${esc((L.config ? L.config + " " : "") + (L.ptype || ""))}</b>${[L.project, L.location].filter(Boolean).length ? " in <b>" + esc([L.project, L.location].filter(Boolean).join(", ")) + "</b>" : ""}${budgetStr(L) ? " · " + budgetStr(L) : ""}${L.phone ? " · " + esc(L.phone) : ""}</div>
       <div class="metad">${L.leadDate ? "Enquired " + fmtLeadDate(L) : ""}${L.email ? " · " + esc(L.email) : ""}</div>
       <div class="acts">
         <a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(waMsg(L))}">${svgWA} WhatsApp</a>
@@ -1305,6 +1306,7 @@
     $("p-budget").value = L?.budget || "";
     $("p-location").value = L?.location || "";
     $("p-zone").value = L?.zone || "";
+    $("p-project").value = L?.project || "";
     const ssel = $("p-status");
     ssel.innerHTML = STATUSES.map((s) => `<option>${s}</option>`).join("");
     ssel.value = L?.status || "New";
@@ -1351,6 +1353,7 @@
       budget: $("p-budget").value ? Number($("p-budget").value) : 0,
       location: $("p-location").value.trim(),
       zone: $("p-zone").value.trim(),
+      project: $("p-project").value.trim(),
       status: $("p-status").value,
       urgency: $("p-urgency").value,
       leadDate: $("p-leaddate").value || todayStr(),
@@ -1394,7 +1397,7 @@
   }
 
   function exportCSV() {
-    const cols = ["id", "name", "phone", "email", "category", "config", "ptype", "location", "zone",
+    const cols = ["id", "name", "phone", "email", "category", "config", "ptype", "project", "location", "zone",
       "budget", "leadDate", "status", "urgency", "outcome", "lastCalled", "lastTexted", "followUp", "callOn", "attempts", "broker", "focus", "requirements"];
     const cell = (v) => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
     const rows = [cols.join(",")];
@@ -1530,6 +1533,7 @@
     config: ["config", "configuration", "bhk"],
     ptype: ["ptype", "propertytype", "property"],
     location: ["location", "area", "locality"],
+    project: ["project", "projectname", "society", "societyname", "building", "buildingname", "complex"],
     zone: ["zone", "region"],
     budget: ["budget", "price", "value", "amount"],
     leadDate: ["leaddate", "date", "enquirydate", "dateofenquiry", "createddate", "created"],
@@ -1624,7 +1628,7 @@
         id: id || uid(), createdAt: Date.now(), updatedAt: Date.now(),
         name, phone, wa: np ? "91" + np : "", email: get(row, "email"),
         category, config, ptype: get(row, "ptype"),
-        location: get(row, "location"), zone: get(row, "zone"), budget,
+        location: get(row, "location"), zone: get(row, "zone"), project: get(row, "project"), budget,
         leadDate: sheetDate(get(row, "leadDate")), repeat: false,
         source: get(row, "source") || "Import",
         status: STATUSES.find((s) => s.toLowerCase() === statusRaw) || "New",
