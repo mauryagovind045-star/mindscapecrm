@@ -506,6 +506,7 @@
       <button class="tab" data-v="sched" aria-selected="false">Follow Ups <span class="b" id="c-sched">0</span></button>
       <button class="tab" data-v="all" aria-selected="false">All Leads</button>
       <button class="tab" data-v="props" aria-selected="false">Properties <span class="b" id="c-props">0</span></button>
+      <button class="tab" data-v="owners" aria-selected="false">Owners <span class="b" id="c-owners">0</span></button>
     </div>
     <div class="filters" id="filters" hidden>
       <input type="search" id="q" placeholder="Search name, phone, area…" autocomplete="off" aria-label="Search leads">
@@ -653,6 +654,33 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="owner-backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Owner details">
+    <h2 id="owner-title">New owner</h2>
+    <div class="field"><label for="o-name">Owner name</label><input id="o-name" required></div>
+    <div class="field-row">
+      <div class="field"><label for="o-phone">Phone</label><input id="o-phone" placeholder="98xxxxxxxx"></div>
+      <div class="field"><label for="o-altphone">Alternate phone</label><input id="o-altphone" placeholder="Optional"></div>
+    </div>
+    <div class="field"><label for="o-email">Email</label><input id="o-email" type="email"></div>
+    <div class="field-row">
+      <div class="field"><label for="o-project">Project / building</label><input id="o-project" placeholder="e.g. Models Exotica"></div>
+      <div class="field"><label for="o-unit">Unit / villa no</label><input id="o-unit" placeholder="A-302"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="o-location">Location / area</label><input id="o-location" list="loc-options"></div>
+      <div class="field"><label for="o-for">Property listed for</label>
+        <select id="o-for"><option value="">—</option><option value="R">Rent</option><option value="S">Sale</option></select></div>
+    </div>
+    <div class="field"><label for="o-notes">Notes</label><textarea id="o-notes" rows="3" placeholder="Prefers calls after 6pm, keys with watchman, brother handles the flat…"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="owner-delete" hidden>Delete</button>
+      <button class="btn" id="owner-cancel">Cancel</button>
+      <button class="btn btn-primary" id="owner-save">Save owner</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status"></div>
 <input type="file" id="file-json" accept="application/json" hidden>
 <input type="file" id="file-sheet" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
@@ -677,6 +705,8 @@
     "Commercial Office", "Commercial Shop / Showroom", "Warehouse / Godown", "Industrial Shed"];
   const PROPS_KEY = "mindscape-props-v1";
   const PROP_TOMB_KEY = "mindscape-prop-tombs-v1";
+  const OWNERS_KEY = "mindscape-owners-v1";
+  const OWNER_TOMB_KEY = "mindscape-owner-tombs-v1";
   const OUTREACH_KEY = "mindscape-outreach-v1";
   const PSTATUSES = ["Available", "On Hold", "Rented Out", "Sold", "Not Available"];
   const PSTATUS_TAG = { "Available": "av", "On Hold": "oh", "Rented Out": "ro", "Sold": "so", "Not Available": "na" };
@@ -692,12 +722,15 @@
   let tombstones = loadJSON(TOMB_KEY, {});
   let props = loadJSON(PROPS_KEY, []);
   let propTombs = loadJSON(PROP_TOMB_KEY, {});
+  let owners = loadJSON(OWNERS_KEY, []);
+  let ownerTombs = loadJSON(OWNER_TOMB_KEY, {});
   let outreach = loadJSON(OUTREACH_KEY, {});   // "YYYY-MM-DD" -> [lead ids reached that day]
   let syncCfg = loadJSON(SYNC_KEY, null);
   let editingId = null;
   let editingPropId = null;
+  let editingOwnerId = null;
 
-  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", broker: "", shown: 30, dashMonth: "", pq: "", pcat: "", pstat: "" };
+  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", broker: "", shown: 30, dashMonth: "", pq: "", pcat: "", pstat: "", oq: "" };
 
   // commercial = commercial/industrial ptypes, incl. free-text ones from imported sheets
   const isCommercial = (L) => /commercial|shop|showroom|office|warehouse|godown|industrial|retail/i.test(L.ptype || "");
@@ -707,6 +740,8 @@
     localStorage.setItem(TOMB_KEY, JSON.stringify(tombstones));
     localStorage.setItem(PROPS_KEY, JSON.stringify(props));
     localStorage.setItem(PROP_TOMB_KEY, JSON.stringify(propTombs));
+    localStorage.setItem(OWNERS_KEY, JSON.stringify(owners));
+    localStorage.setItem(OWNER_TOMB_KEY, JSON.stringify(ownerTombs));
     localStorage.setItem(OUTREACH_KEY, JSON.stringify(outreach));
   }
 
@@ -855,15 +890,17 @@
     $("c-tocall").textContent = tc;
     $("c-sched").textContent = sched + due;
     $("c-props").textContent = props.filter((p) => p.status === "Available").length;
+    $("c-owners").textContent = owners.length;
     return { due, tc, sched };
   }
 
   function render() {
     const c = counts();
-    $("filters").hidden = state.view === "dash" || state.view === "props";
+    $("filters").hidden = state.view === "dash" || state.view === "props" || state.view === "owners";
     $("dash").innerHTML = ""; $("list").innerHTML = "";
     if (state.view === "dash") { renderDash(c); $("more").hidden = true; $("hint").textContent = ""; return; }
     if (state.view === "props") { renderProps(); $("more").hidden = true; $("hint").textContent = ""; return; }
+    if (state.view === "owners") { renderOwners(); $("more").hidden = true; $("hint").textContent = ""; return; }
     const f = viewSorted(filtered());
     const slice = f.slice(0, state.shown);
     if (!slice.length) {
@@ -1291,6 +1328,142 @@
     save(); render(); closePropModal(); toast("Property deleted");
   }
 
+  /* ---------- Owners ---------- */
+
+  function ownerFiltered() {
+    const q = state.oq.toLowerCase();
+    const f = owners.filter((o) => {
+      if (!q) return true;
+      const hay = [o.name, o.phone, o.altPhone, o.email, o.project, o.unit, o.location, o.notes]
+        .map((v) => v || "").join(" ").toLowerCase();
+      const qd = q.replace(/\D/g, "");
+      const phoneHit = qd.length >= 4 && (String(o.phone || "") + String(o.altPhone || "")).replace(/\D/g, "").includes(qd);
+      return hay.includes(q) || phoneHit;
+    });
+    return f.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }
+
+  function renderOwners() {
+    const d = document.createElement("div");
+    d.innerHTML = `
+      <div class="props-head">
+        <input type="search" id="oq" placeholder="Search owner, phone, project…" value="${esc(state.oq)}" aria-label="Search owners">
+        <button class="btn" id="owners-from-props" title="Copy owner contacts saved on your properties">⤓ From properties</button>
+        <button class="btn btn-primary" id="add-owner">+ Add owner</button>
+      </div>`;
+    $("dash").appendChild(d);
+    $("add-owner").addEventListener("click", () => openOwnerModal(null));
+    $("owners-from-props").addEventListener("click", importOwnersFromProps);
+    $("oq").addEventListener("input", (e) => { state.oq = e.target.value; renderOwnerList(); });
+    renderOwnerList();
+  }
+
+  function renderOwnerList() {
+    const list = $("list");
+    list.innerHTML = "";
+    const f = ownerFiltered();
+    if (!f.length) {
+      list.innerHTML = '<div class="empty">' + (owners.length === 0
+        ? "No owner contacts yet. Tap + Add owner, or ⤓ From properties to pull in owners already saved on your listings."
+        : "No owner matches that search.") + "</div>";
+      return;
+    }
+    for (const o of f) list.appendChild(ownerCardEl(o));
+  }
+
+  function ownerCardEl(o) {
+    const c = document.createElement("div");
+    c.className = "card";
+    const np = normPhone(o.phone || "");
+    const prop = [o.project, o.unit].filter(Boolean).join(" · ");
+    const detail = [prop, o.location].filter(Boolean).join(", ");
+    const phones = [o.phone, o.altPhone].filter(Boolean).join(" / ");
+    c.innerHTML = `
+      <div class="top"><span class="name" role="button" tabindex="0">${esc(o.name) || "(no name)"}</span>
+        ${o.listingFor ? `<span class="tag ${o.listingFor === "R" ? "r" : "s"}">${o.listingFor === "R" ? "Rent" : "Sale"}</span>` : ""}</div>
+      <div class="req">${detail ? "Owns <b>" + esc(detail) + "</b>" : "<span style='color:var(--muted)'>No property noted — tap the name to add details.</span>"}${phones ? " · " + esc(phones) : ""}</div>
+      ${o.email ? `<div class="metad">${esc(o.email)}</div>` : ""}
+      ${o.notes ? `<div class="metad">${esc(o.notes)}</div>` : ""}
+      ${o.phone ? `<div class="acts">
+        <a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/91${np}">${svgWA} WhatsApp</a>
+        <a class="btn call" href="tel:${String(o.phone).replace(/[^0-9+]/g, "")}">${svgCall} Call</a>
+      </div>` : ""}`;
+    c.querySelector(".name").addEventListener("click", () => openOwnerModal(o.id));
+    c.querySelector(".name").addEventListener("keydown", (e) => { if (e.key === "Enter") openOwnerModal(o.id); });
+    return c;
+  }
+
+  function openOwnerModal(id) {
+    editingOwnerId = id;
+    const o = id ? owners.find((x) => x.id === id) : null;
+    $("owner-title").textContent = o ? o.name : "New owner";
+    $("o-name").value = o?.name || "";
+    $("o-phone").value = o?.phone || "";
+    $("o-altphone").value = o?.altPhone || "";
+    $("o-email").value = o?.email || "";
+    $("o-project").value = o?.project || "";
+    $("o-unit").value = o?.unit || "";
+    $("o-location").value = o?.location || "";
+    $("o-for").value = o?.listingFor || "";
+    $("o-notes").value = o?.notes || "";
+    $("owner-delete").hidden = !o;
+    $("owner-backdrop").hidden = false;
+    $("o-name").focus();
+  }
+
+  function closeOwnerModal() { $("owner-backdrop").hidden = true; editingOwnerId = null; }
+
+  function saveOwnerModal() {
+    const name = $("o-name").value.trim();
+    if (!name) { $("o-name").focus(); return; }
+    const data = {
+      name, phone: $("o-phone").value.trim(), altPhone: $("o-altphone").value.trim(),
+      email: $("o-email").value.trim(), project: $("o-project").value.trim(),
+      unit: $("o-unit").value.trim(), location: $("o-location").value.trim(),
+      listingFor: $("o-for").value, notes: $("o-notes").value.trim(), updatedAt: Date.now(),
+    };
+    if (editingOwnerId) {
+      Object.assign(owners.find((x) => x.id === editingOwnerId), data);
+      toast("Owner updated");
+    } else {
+      owners.unshift({ id: uid(), createdAt: Date.now(), ...data });
+      toast("Owner added");
+    }
+    save(); render(); closeOwnerModal();
+  }
+
+  function deleteOwner() {
+    const o = owners.find((x) => x.id === editingOwnerId);
+    if (!o) return;
+    if (!confirm(`Delete ${o.name}? This can't be undone.`)) return;
+    ownerTombs[editingOwnerId] = Date.now();
+    owners = owners.filter((x) => x.id !== editingOwnerId);
+    save(); render(); closeOwnerModal(); toast("Owner deleted");
+  }
+
+  function importOwnersFromProps() {
+    // dedupe by phone (or name when there's no phone) so re-running is safe
+    const havePhone = new Set(owners.map((o) => normPhone(o.phone)).filter(Boolean));
+    const haveName = new Set(owners.map((o) => (o.name || "").toLowerCase()));
+    let added = 0;
+    for (const p of props) {
+      if (!p.ownerName && !p.ownerPhone) continue;
+      const np = normPhone(p.ownerPhone || "");
+      if (np ? havePhone.has(np) : haveName.has((p.ownerName || "").toLowerCase())) continue;
+      owners.push({
+        id: uid(), createdAt: Date.now(), updatedAt: Date.now(),
+        name: p.ownerName || p.ownerPhone, phone: p.ownerPhone || "", altPhone: "", email: "",
+        project: p.name || "", unit: p.unit || "", location: p.location || "",
+        listingFor: p.listingFor || "", notes: "",
+      });
+      if (np) havePhone.add(np);
+      haveName.add((p.ownerName || "").toLowerCase());
+      added++;
+    }
+    if (added) { save(); render(); }
+    toast(added ? `Added ${added} owner${added === 1 ? "" : "s"} from properties` : "All property owners are already here");
+  }
+
   /* ---------- Panel (full edit) ---------- */
 
   function openPanel(id) {
@@ -1407,7 +1580,7 @@
   }
 
   function exportJSON() {
-    download(`mindscape-backup-${todayStr()}.json`, JSON.stringify({ version: 2, leads, tombstones, props, propTombstones: propTombs, outreach }), "application/json");
+    download(`mindscape-backup-${todayStr()}.json`, serialize(), "application/json");
     toast("Backup exported");
   }
 
@@ -1424,6 +1597,10 @@
         if (Array.isArray(data.props)) {
           const pExisting = new Set(props.map((p) => p.id));
           for (const p of data.props) if (p && p.id && p.name && !pExisting.has(p.id)) { props.push(p); added++; }
+        }
+        if (Array.isArray(data.owners)) {
+          const oExisting = new Set(owners.map((o) => o.id));
+          for (const o of data.owners) if (o && o.id && o.name && !oExisting.has(o.id)) { owners.push(o); added++; }
         }
         save(); fillFilters(); render();
         toast(added ? `Imported ${added} item${added > 1 ? "s" : ""}` : "Nothing new to import");
@@ -1777,6 +1954,16 @@
     }
     const mergedProps = [...pById.values()].filter((p) => !(pTombs[p.id] > leadTime(p)));
 
+    const oTombs = { ...(remote?.ownerTombstones || {}) };
+    for (const [id, ts] of Object.entries(ownerTombs)) oTombs[id] = Math.max(ts, oTombs[id] || 0);
+    const oById = new Map();
+    for (const o of [...(remote?.owners || []), ...owners]) {
+      if (!o || !o.id) continue;
+      const prev = oById.get(o.id);
+      if (!prev || leadTime(o) >= leadTime(prev)) oById.set(o.id, o);
+    }
+    const mergedOwners = [...oById.values()].filter((o) => !(oTombs[o.id] > leadTime(o)));
+
     const mergedReach = {};
     for (const src of [remote?.outreach || {}, outreach]) {
       for (const [day, ids] of Object.entries(src)) {
@@ -1786,10 +1973,10 @@
       }
     }
 
-    return { leads: mergedLeads, tombstones: tombs, props: mergedProps, propTombstones: pTombs, outreach: mergedReach };
+    return { leads: mergedLeads, tombstones: tombs, props: mergedProps, propTombstones: pTombs, owners: mergedOwners, ownerTombstones: oTombs, outreach: mergedReach };
   }
 
-  function serialize() { return JSON.stringify({ version: 2, leads, tombstones, props, propTombstones: propTombs, outreach }); }
+  function serialize() { return JSON.stringify({ version: 2, leads, tombstones, props, propTombstones: propTombs, owners, ownerTombstones: ownerTombs, outreach }); }
 
   function setSyncStatus(stateName, msg) {
     $("sync-dot").className = "sync-dot" + (stateName ? " " + stateName : "");
@@ -1834,10 +2021,11 @@
       const merged = mergeRemote(remote);
       leads = merged.leads; tombstones = merged.tombstones;
       props = merged.props; propTombs = merged.propTombstones;
+      owners = merged.owners; ownerTombs = merged.ownerTombstones;
       outreach = merged.outreach;
       persistLocal(); fillFilters(); render();
       const body = serialize();
-      const remoteBody = remote && remote.version === 2 ? JSON.stringify({ version: 2, leads: remote.leads, tombstones: remote.tombstones || {}, props: remote.props || [], propTombstones: remote.propTombstones || {}, outreach: remote.outreach || {} }) : null;
+      const remoteBody = remote && remote.version === 2 ? JSON.stringify({ version: 2, leads: remote.leads, tombstones: remote.tombstones || {}, props: remote.props || [], propTombstones: remote.propTombstones || {}, owners: remote.owners || [], ownerTombstones: remote.ownerTombstones || {}, outreach: remote.outreach || {} }) : null;
       if (body !== remoteBody) {
         const put = await fetch(url, {
           method: "PUT", headers,
@@ -1907,6 +2095,10 @@
   $("prop-cancel").addEventListener("click", closePropModal);
   $("prop-delete").addEventListener("click", deleteProp);
   $("prop-backdrop").addEventListener("click", (e) => { if (e.target === $("prop-backdrop")) closePropModal(); });
+  $("owner-save").addEventListener("click", saveOwnerModal);
+  $("owner-cancel").addEventListener("click", closeOwnerModal);
+  $("owner-delete").addEventListener("click", deleteOwner);
+  $("owner-backdrop").addEventListener("click", (e) => { if (e.target === $("owner-backdrop")) closeOwnerModal(); });
   $("lead-form").addEventListener("submit", (e) => { e.preventDefault(); savePanel(); });
 
   $("note-add").addEventListener("click", () => {
@@ -1966,6 +2158,8 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       if (!$("sync-backdrop").hidden) closeSyncModal();
+      else if (!$("owner-backdrop").hidden) closeOwnerModal();
+      else if (!$("prop-backdrop").hidden) closePropModal();
       else closePanel();
     }
   });
