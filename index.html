@@ -668,10 +668,11 @@
       <div class="field"><label for="o-unit">Unit / villa no</label><input id="o-unit" placeholder="A-302"></div>
     </div>
     <div class="field-row">
+      <div class="field"><label for="o-config">Config</label><input id="o-config" placeholder="2 BHK" list="config-options"></div>
       <div class="field"><label for="o-location">Location / area</label><input id="o-location" list="loc-options"></div>
-      <div class="field"><label for="o-for">Property listed for</label>
-        <select id="o-for"><option value="">—</option><option value="R">Rent</option><option value="S">Sale</option></select></div>
     </div>
+    <div class="field"><label for="o-for">Property listed for</label>
+      <select id="o-for"><option value="">—</option><option value="R">Rent</option><option value="S">Sale</option></select></div>
     <div class="field"><label for="o-notes">Notes</label><textarea id="o-notes" rows="3" placeholder="Prefers calls after 6pm, keys with watchman, brother handles the flat…"></textarea></div>
     <div class="modal-actions">
       <button class="btn btn-danger" id="owner-delete" hidden>Delete</button>
@@ -1252,7 +1253,7 @@
       ${p.link ? `<div class="metad"><a href="${esc(p.link)}" target="_blank" rel="noopener">Photos / listing ↗</a></div>` : ""}
       <div class="prop-owner">
         ${p.ownerName || p.ownerPhone ? `<span>Owner: <b>${esc(p.ownerName || "—")}</b>${p.ownerPhone ? " · " + esc(p.ownerPhone) : ""}</span>` : ""}
-        ${np ? `<a class="obtn w" target="_blank" rel="noopener" href="https://wa.me/91${np}">${svgWA} WhatsApp</a>
+        ${np ? `<a class="obtn w" target="_blank" rel="noopener" href="https://wa.me/91${np}?text=${encodeURIComponent(ownerWaMsg({ name: p.ownerName, config: p.config, project: p.name, location: p.location, listingFor: p.listingFor }))}">${svgWA} WhatsApp</a>
         <a class="obtn" href="tel:${esc(p.ownerPhone || "")}">${svgCall} Call</a>` : ""}
         <select data-ps aria-label="Property status" style="margin-left:auto">${PSTATUSES.map((s) => `<option${p.status === s ? " selected" : ""}>${s}</option>`).join("")}</select>
       </div>`;
@@ -1330,11 +1331,19 @@
 
   /* ---------- Owners ---------- */
 
+  // prefilled WhatsApp text for an owner — works for owner records and for
+  // property cards (pass {name, config, project, location, listingFor})
+  function ownerWaMsg(o) {
+    const what = (o.config ? o.config : "property") + (o.project ? " in " + o.project : o.location ? " in " + o.location : "");
+    const avail = o.listingFor === "R" ? "still available for rent" : o.listingFor === "S" ? "still available for sale" : "still available";
+    return `${greet(o.name)}, this is Govind from Mindscape Properties\nI'm reaching out about your ${what}${o.project && o.location ? ", " + o.location : ""} — is it ${avail}?\nI have genuine clients looking for exactly this and would love to discuss. Just reply *yes* and I'll call you.`;
+  }
+
   function ownerFiltered() {
     const q = state.oq.toLowerCase();
     const f = owners.filter((o) => {
       if (!q) return true;
-      const hay = [o.name, o.phone, o.altPhone, o.email, o.project, o.unit, o.location, o.notes]
+      const hay = [o.name, o.phone, o.altPhone, o.email, o.project, o.unit, o.config, o.location, o.notes]
         .map((v) => v || "").join(" ").toLowerCase();
       const qd = q.replace(/\D/g, "");
       const phoneHit = qd.length >= 4 && (String(o.phone || "") + String(o.altPhone || "")).replace(/\D/g, "").includes(qd);
@@ -1376,7 +1385,7 @@
     c.className = "card";
     const np = normPhone(o.phone || "");
     const prop = [o.project, o.unit].filter(Boolean).join(" · ");
-    const detail = [prop, o.location].filter(Boolean).join(", ");
+    const detail = [[o.config, prop].filter(Boolean).join(" in "), o.location].filter(Boolean).join(", ");
     const phones = [o.phone, o.altPhone].filter(Boolean).join(" / ");
     c.innerHTML = `
       <div class="top"><span class="name" role="button" tabindex="0">${esc(o.name) || "(no name)"}</span>
@@ -1385,7 +1394,7 @@
       ${o.email ? `<div class="metad">${esc(o.email)}</div>` : ""}
       ${o.notes ? `<div class="metad">${esc(o.notes)}</div>` : ""}
       ${o.phone ? `<div class="acts">
-        <a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/91${np}">${svgWA} WhatsApp</a>
+        <a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/91${np}?text=${encodeURIComponent(ownerWaMsg(o))}">${svgWA} WhatsApp</a>
         <a class="btn call" href="tel:${String(o.phone).replace(/[^0-9+]/g, "")}">${svgCall} Call</a>
       </div>` : ""}`;
     c.querySelector(".name").addEventListener("click", () => openOwnerModal(o.id));
@@ -1403,6 +1412,7 @@
     $("o-email").value = o?.email || "";
     $("o-project").value = o?.project || "";
     $("o-unit").value = o?.unit || "";
+    $("o-config").value = o?.config || "";
     $("o-location").value = o?.location || "";
     $("o-for").value = o?.listingFor || "";
     $("o-notes").value = o?.notes || "";
@@ -1419,7 +1429,7 @@
     const data = {
       name, phone: $("o-phone").value.trim(), altPhone: $("o-altphone").value.trim(),
       email: $("o-email").value.trim(), project: $("o-project").value.trim(),
-      unit: $("o-unit").value.trim(), location: $("o-location").value.trim(),
+      unit: $("o-unit").value.trim(), config: $("o-config").value.trim(), location: $("o-location").value.trim(),
       listingFor: $("o-for").value, notes: $("o-notes").value.trim(), updatedAt: Date.now(),
     };
     if (editingOwnerId) {
@@ -1453,7 +1463,7 @@
       owners.push({
         id: uid(), createdAt: Date.now(), updatedAt: Date.now(),
         name: p.ownerName || p.ownerPhone, phone: p.ownerPhone || "", altPhone: "", email: "",
-        project: p.name || "", unit: p.unit || "", location: p.location || "",
+        project: p.name || "", unit: p.unit || "", config: p.config || "", location: p.location || "",
         listingFor: p.listingFor || "", notes: "",
       });
       if (np) havePhone.add(np);
