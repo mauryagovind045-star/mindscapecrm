@@ -644,6 +644,7 @@
       <div class="field"><label for="pr-status">Status</label><select id="pr-status"></select></div>
       <div class="field"><label for="pr-avail">Available from</label><input id="pr-avail" type="date"></div>
     </div>
+    <div class="field"><label for="pr-posted">Posted on (portal listing date)</label><input id="pr-posted" type="date"></div>
     <div class="field"><label for="pr-link">Photos / listing link</label><input id="pr-link" type="url" placeholder="https://…"></div>
     <div class="field"><label for="pr-notes">Write-up / remarks</label><textarea id="pr-notes" rows="3" placeholder="Sea view, 2 covered parkings, pets allowed, keys with watchman…"></textarea></div>
     <div class="modal-actions">
@@ -1248,7 +1249,7 @@
         <span class="tag ${p.listingFor === "R" ? "r" : "s"}">${p.listingFor === "R" ? "Rent" : "Sale"}</span>
         <span class="tag ${PSTATUS_TAG[p.status] || "na"}">${p.status}</span></div>
       <div class="req">${detail ? esc(detail) : "<span style='color:var(--muted)'>No details yet — tap the name to fill them in.</span>"}${price ? " · <b>" + price + "</b>" : ""}</div>
-      ${p.availableFrom ? `<div class="metad">Available from ${fmtD(p.availableFrom)}</div>` : ""}
+      ${p.postedOn || p.availableFrom ? `<div class="metad">${[p.postedOn ? "Posted " + fmtD(p.postedOn) : "", p.availableFrom ? "Available from " + fmtD(p.availableFrom) : ""].filter(Boolean).join(" · ")}</div>` : ""}
       ${p.notes ? `<div class="metad">${esc(p.notes)}</div>` : ""}
       ${p.link ? `<div class="metad"><a href="${esc(p.link)}" target="_blank" rel="noopener">Photos / listing ↗</a></div>` : ""}
       <div class="prop-owner">
@@ -1347,6 +1348,7 @@
     ssel.innerHTML = PSTATUSES.map((s) => `<option>${s}</option>`).join("");
     ssel.value = p?.status || "Available";
     $("pr-avail").value = p?.availableFrom || "";
+    $("pr-posted").value = p?.postedOn || "";
     $("pr-link").value = p?.link || "";
     $("pr-notes").value = p?.notes || "";
     $("prop-delete").hidden = !p;
@@ -1367,7 +1369,7 @@
       size: $("pr-size").value.trim(), furnishing: $("pr-furnish").value,
       floor: $("pr-floor").value.trim(), ownerName: $("pr-owner").value.trim(),
       ownerPhone: $("pr-ophone").value.trim(), status: $("pr-status").value,
-      availableFrom: $("pr-avail").value || "", link: $("pr-link").value.trim(),
+      availableFrom: $("pr-avail").value || "", postedOn: $("pr-posted").value || "", link: $("pr-link").value.trim(),
       notes: $("pr-notes").value.trim(), updatedAt: Date.now(),
     };
     if (editingPropId) {
