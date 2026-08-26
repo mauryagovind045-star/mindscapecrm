@@ -1255,8 +1255,14 @@
         ${p.ownerName || p.ownerPhone ? `<span>Owner: <b>${esc(p.ownerName || "—")}</b>${p.ownerPhone ? " · " + esc(p.ownerPhone) : ""}</span>` : ""}
         ${np ? `<a class="obtn w" target="_blank" rel="noopener" href="https://wa.me/91${np}?text=${encodeURIComponent(ownerWaMsg({ name: p.ownerName, config: p.config, project: p.name, location: p.location, listingFor: p.listingFor }))}">${svgWA} WhatsApp</a>
         <a class="obtn" href="tel:${esc(p.ownerPhone || "")}">${svgCall} Call</a>` : ""}
+        <button class="obtn" data-copywr title="Copy a client-ready write-up (no owner details)">📋 Write-up</button>
         <select data-ps aria-label="Property status" style="margin-left:auto">${PSTATUSES.map((s) => `<option${p.status === s ? " selected" : ""}>${s}</option>`).join("")}</select>
       </div>`;
+    c.querySelector("[data-copywr]").addEventListener("click", () => {
+      copyText(propWriteup(p))
+        .then(() => toast("Write-up copied — paste it anywhere"))
+        .catch(() => toast("Couldn't copy — try again"));
+    });
     c.querySelector(".name").addEventListener("click", () => openPropModal(p.id));
     c.querySelector(".name").addEventListener("keydown", (e) => { if (e.key === "Enter") openPropModal(p.id); });
     c.querySelector("[data-ps]").addEventListener("change", (e) => {
@@ -1264,6 +1270,60 @@
       save(); render();
     });
     return c;
+  }
+
+  // client-ready write-up for sharing — never includes owner name/phone/email or the society name
+  function propWriteup(p) {
+    const sale = p.listingFor !== "R";
+    const price = budgetStr({ category: p.listingFor, budget: p.price }).replace("Lac", "Lakhs");
+    const neg = /negotiable/i.test(p.notes || "");
+    const title = [p.config, p.furnishing, p.ptype || "Property", sale ? "FOR SALE" : "FOR RENT"]
+      .filter(Boolean).join(" ").toUpperCase()
+      + (p.location ? " – " + p.location.toUpperCase() : "")
+      + (price ? " – " + price.toUpperCase() + (neg ? " (NEG)" : "") : "") + " 🏢";
+
+    const specs = [];
+    if (p.location) specs.push("📍 Location: " + [p.location, p.zone].filter(Boolean).join(", "));
+    if (p.size) specs.push("📐 Area: " + p.size + " sq.ft");
+    if (p.config) specs.push("🛏️ Configuration: " + p.config);
+    if (p.floor) specs.push("🏢 Floor: " + p.floor);
+    if (p.furnishing) specs.push("🛋️ Furnishing: " + p.furnishing);
+    if (price) specs.push("💰 " + (sale ? "Price: " : "Rent: ") + price + (neg ? " (Negotiable)" : ""));
+    const dep = (p.notes || "").match(/deposit\s*(₹\s*[\d.,]+\s*(?:l|lac|lakhs?|cr|k)?\b\.?)/i);
+    if (!sale && dep) specs.push("🔒 Security Deposit: " + dep[1].trim());
+    specs.push("📅 Status: " + (sale ? "Ready to Move" : p.availableFrom ? "Available from " + fmtD(p.availableFrom) : "Available Immediately"));
+
+    // selling points from remarks — drop anything that could identify the owner, and prices (already above)
+    const hl = (p.notes || "").split("·").map((s) => s.trim())
+      .filter((s) => s && !/owner|email|@|\d{7,}|₹/i.test(s))
+      .slice(0, 8);
+
+    const feats = [];
+    if (p.config) feats.push("✅ " + p.config + " – Comfortable Living");
+    if (/full/i.test(p.furnishing || "")) feats.push("✅ Fully Furnished – Move-in Ready");
+    else if (p.furnishing) feats.push("✅ " + p.furnishing);
+    for (const h of hl) feats.push("✅ " + h.charAt(0).toUpperCase() + h.slice(1));
+    if (p.location) feats.push("✅ Prime " + p.location + " Location");
+
+    return [
+      title, "",
+      specs.join("\n"), "",
+      "✨ KEY FEATURES:", "",
+      feats.join("\n"), "",
+      "🎯 IDEAL FOR:",
+      "Families | Couples | Professionals", "",
+      "📞 Call/WhatsApp: 8956619967",
+      "🏢 Mindscape Properties",
+      "📌 Brokerage Charges: " + (sale ? "2% of the deal value + GST (as applicable)" : "One month's rent (as applicable)"),
+    ].join("\n");
+  }
+
+  function copyText(t) {
+    if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(t);
+    const ta = document.createElement("textarea");
+    ta.value = t; document.body.appendChild(ta); ta.select();
+    document.execCommand("copy"); ta.remove();
+    return Promise.resolve();
   }
 
   function openPropModal(id) {
