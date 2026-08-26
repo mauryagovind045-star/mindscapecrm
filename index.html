@@ -731,7 +731,7 @@
   let editingPropId = null;
   let editingOwnerId = null;
 
-  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", broker: "", shown: 30, dashMonth: "", pq: "", pcat: "", pstat: "", oq: "" };
+  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", broker: "", shown: 30, dashMonth: "", pq: "", pcat: "", pstat: "", oq: "", ocat: "" };
 
   // commercial = commercial/industrial ptypes, incl. free-text ones from imported sheets
   const isCommercial = (L) => /commercial|shop|showroom|office|warehouse|godown|industrial|retail/i.test(L.ptype || "");
@@ -1402,6 +1402,7 @@
   function ownerFiltered() {
     const q = state.oq.toLowerCase();
     const f = owners.filter((o) => {
+      if (state.ocat && o.listingFor !== state.ocat) return false;
       if (!q) return true;
       const hay = [o.name, o.phone, o.altPhone, o.email, o.project, o.unit, o.config, o.location, o.notes]
         .map((v) => v || "").join(" ").toLowerCase();
@@ -1417,6 +1418,11 @@
     d.innerHTML = `
       <div class="props-head">
         <input type="search" id="oq" placeholder="Search owner, phone, project…" value="${esc(state.oq)}" aria-label="Search owners">
+        <select id="ocat" aria-label="Owner listing type">
+          <option value="">Rent &amp; Sale</option>
+          <option value="R"${state.ocat === "R" ? " selected" : ""}>Rental owners</option>
+          <option value="S"${state.ocat === "S" ? " selected" : ""}>Sale owners</option>
+        </select>
         <button class="btn" id="owners-from-props" title="Copy owner contacts saved on your properties">⤓ From properties</button>
         <button class="btn btn-primary" id="add-owner">+ Add owner</button>
       </div>`;
@@ -1424,6 +1430,7 @@
     $("add-owner").addEventListener("click", () => openOwnerModal(null));
     $("owners-from-props").addEventListener("click", importOwnersFromProps);
     $("oq").addEventListener("input", (e) => { state.oq = e.target.value; renderOwnerList(); });
+    $("ocat").addEventListener("change", (e) => { state.ocat = e.target.value; renderOwnerList(); });
     renderOwnerList();
   }
 
