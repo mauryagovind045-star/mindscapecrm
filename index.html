@@ -732,7 +732,7 @@
   let editingPropId = null;
   let editingOwnerId = null;
 
-  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", broker: "", shown: 30, dashMonth: "", pq: "", pcat: "", pstat: "", oq: "", ocat: "" };
+  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", broker: "", shown: 30, dashMonth: "", pq: "", pcat: "", pstat: "", pbhk: "", pfurn: "", oq: "", ocat: "" };
 
   // commercial = commercial/industrial ptypes, incl. free-text ones from imported sheets
   const isCommercial = (L) => /commercial|shop|showroom|office|warehouse|godown|industrial|retail/i.test(L.ptype || "");
@@ -1181,6 +1181,8 @@
     return props.filter((p) => {
       if (state.pcat && p.listingFor !== state.pcat) return false;
       if (state.pstat && p.status !== state.pstat) return false;
+      if (state.pbhk && (p.config || "").trim() !== state.pbhk) return false;
+      if (state.pfurn && (p.furnishing || "") !== state.pfurn) return false;
       if (q && !([p.name, p.unit, p.location, p.zone, p.ownerName, p.ownerPhone, p.config, p.ptype, p.notes]
         .map((v) => v || "").join(" ").toLowerCase().includes(q))) return false;
       return true;
@@ -1200,6 +1202,16 @@
           <option value="R"${state.pcat === "R" ? " selected" : ""}>Rent</option>
           <option value="S"${state.pcat === "S" ? " selected" : ""}>Sale</option>
         </select>
+        <select id="pbhk" aria-label="BHK">
+          <option value="">All BHK</option>
+          ${[...new Set(props.map((p) => (p.config || "").trim()).filter(Boolean))].sort()
+            .map((c) => `<option${state.pbhk === c ? " selected" : ""}>${esc(c)}</option>`).join("")}
+        </select>
+        <select id="pfurn" aria-label="Furnishing">
+          <option value="">All furnishing</option>
+          ${["Fully Furnished", "Semi Furnished", "Unfurnished"]
+            .map((f) => `<option${state.pfurn === f ? " selected" : ""}>${f}</option>`).join("")}
+        </select>
         <button class="btn btn-primary" id="add-prop">+ Add property</button>
       </div>
       <div class="dashsec monthsec" style="margin-top:12px">
@@ -1215,6 +1227,8 @@
     $("add-prop").addEventListener("click", () => openPropModal(null));
     $("pq").addEventListener("input", (e) => { state.pq = e.target.value; renderPropList(); });
     $("pcat").addEventListener("change", (e) => { state.pcat = e.target.value; renderPropList(); });
+    $("pbhk").addEventListener("change", (e) => { state.pbhk = e.target.value; renderPropList(); });
+    $("pfurn").addEventListener("change", (e) => { state.pfurn = e.target.value; renderPropList(); });
     d.querySelectorAll("[data-pstat]").forEach((b) => b.addEventListener("click", () => {
       state.pstat = state.pstat === b.dataset.pstat ? "" : b.dataset.pstat;
       render();
