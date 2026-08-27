@@ -347,6 +347,17 @@
   .prop-owner .obtn:hover { background: var(--iris-soft); }
   #prop-backdrop .modal { max-height: 90vh; overflow-y: auto; }
 
+  .prop-remark {
+    margin-top: 8px; display: inline-block; font-size: 12.5px; font-weight: 600;
+    color: var(--hot); background: var(--hot-soft); border-radius: 8px; padding: 4px 10px;
+  }
+  .prop-remark-row { margin-top: 9px; }
+  .prop-remark-row input {
+    width: 100%; padding: 7px 9px; font-size: 13px;
+    background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 8px;
+  }
+  .prop-remark-row input:focus { border-style: solid; }
+
   .req { color: var(--ink-soft); font-size: 13px; margin-top: 5px; }
   .req b { color: var(--ink); font-weight: 600; }
 
@@ -645,6 +656,7 @@
       <div class="field"><label for="pr-avail">Available from</label><input id="pr-avail" type="date"></div>
     </div>
     <div class="field"><label for="pr-posted">Posted on (portal listing date)</label><input id="pr-posted" type="date"></div>
+    <div class="field"><label for="pr-remark">Remark (current position)</label><input id="pr-remark" list="remark-options" placeholder="e.g. Rented out but available for sale"></div>
     <div class="field"><label for="pr-link">Photos / listing link</label><input id="pr-link" type="url" placeholder="https://…"></div>
     <div class="field"><label for="pr-notes">Write-up / remarks</label><textarea id="pr-notes" rows="3" placeholder="Sea view, 2 covered parkings, pets allowed, keys with watchman…"></textarea></div>
     <div class="modal-actions">
@@ -684,6 +696,15 @@
 </div>
 
 <div class="toast" id="toast" role="status"></div>
+<datalist id="remark-options">
+  <option value="Rented out but available for sale">
+  <option value="Sold, but owner has other properties">
+  <option value="On hold — owner will decide later">
+  <option value="Owner in a hurry to sell — negotiable">
+  <option value="Deal in progress">
+  <option value="Owner not reachable — try again later">
+  <option value="Keys with watchman — visit anytime">
+</datalist>
 <input type="file" id="file-json" accept="application/json" hidden>
 <input type="file" id="file-sheet" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
 <input type="file" id="file-html" accept=".html,text/html" hidden>
@@ -1263,6 +1284,7 @@
         <span class="tag ${p.listingFor === "R" ? "r" : "s"}">${p.listingFor === "R" ? "Rent" : "Sale"}</span>
         <span class="tag ${PSTATUS_TAG[p.status] || "na"}">${p.status}</span></div>
       <div class="req">${detail ? esc(detail) : "<span style='color:var(--muted)'>No details yet — tap the name to fill them in.</span>"}${price ? " · <b>" + price + "</b>" : ""}</div>
+      ${p.remark ? `<div class="prop-remark">📝 ${esc(p.remark)}</div>` : ""}
       ${p.postedOn || p.availableFrom ? `<div class="metad">${[p.postedOn ? "Posted " + fmtD(p.postedOn) : "", p.availableFrom ? "Available from " + fmtD(p.availableFrom) : ""].filter(Boolean).join(" · ")}</div>` : ""}
       ${p.notes ? `<div class="metad">${esc(p.notes)}</div>` : ""}
       ${p.link ? `<div class="metad"><a href="${esc(p.link)}" target="_blank" rel="noopener">Photos / listing ↗</a></div>` : ""}
@@ -1272,7 +1294,15 @@
         <a class="obtn" href="tel:${esc(p.ownerPhone || "")}">${svgCall} Call</a>` : ""}
         <button class="obtn" data-copywr title="Copy a client-ready write-up (no owner details)">📋 Write-up</button>
         <select data-ps aria-label="Property status" style="margin-left:auto">${PSTATUSES.map((s) => `<option${p.status === s ? " selected" : ""}>${s}</option>`).join("")}</select>
+      </div>
+      <div class="prop-remark-row">
+        <input data-rm list="remark-options" placeholder="Add a remark — e.g. Rented out but available for sale" value="${esc(p.remark || "")}" aria-label="Property remark">
       </div>`;
+    c.querySelector("[data-rm]").addEventListener("change", (e) => {
+      p.remark = e.target.value.trim(); p.updatedAt = Date.now();
+      save(); c.replaceWith(propCardEl(p));
+      if (p.remark) toast("Remark saved");
+    });
     c.querySelector("[data-copywr]").addEventListener("click", () => {
       copyText(propWriteup(p))
         .then(() => toast("Write-up copied — paste it anywhere"))
@@ -1363,6 +1393,7 @@
     ssel.value = p?.status || "Available";
     $("pr-avail").value = p?.availableFrom || "";
     $("pr-posted").value = p?.postedOn || "";
+    $("pr-remark").value = p?.remark || "";
     $("pr-link").value = p?.link || "";
     $("pr-notes").value = p?.notes || "";
     $("prop-delete").hidden = !p;
@@ -1383,7 +1414,7 @@
       size: $("pr-size").value.trim(), furnishing: $("pr-furnish").value,
       floor: $("pr-floor").value.trim(), ownerName: $("pr-owner").value.trim(),
       ownerPhone: $("pr-ophone").value.trim(), status: $("pr-status").value,
-      availableFrom: $("pr-avail").value || "", postedOn: $("pr-posted").value || "", link: $("pr-link").value.trim(),
+      availableFrom: $("pr-avail").value || "", postedOn: $("pr-posted").value || "", remark: $("pr-remark").value.trim(), link: $("pr-link").value.trim(),
       notes: $("pr-notes").value.trim(), updatedAt: Date.now(),
     };
     if (editingPropId) {
