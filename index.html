@@ -347,6 +347,13 @@
   .prop-owner .obtn:hover { background: var(--iris-soft); }
   #prop-backdrop .modal { max-height: 90vh; overflow-y: auto; }
 
+  .unit-box { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .unit-box .ub {
+    background: var(--iris-soft); border: 1px solid var(--line); border-radius: 8px;
+    padding: 3px 10px; font-size: 12px; color: var(--ink-soft);
+  }
+  .unit-box .ub b { color: var(--iris-deep); font-weight: 700; }
+
   .prop-remark {
     margin-top: 8px; display: inline-block; font-size: 12.5px; font-weight: 600;
     color: var(--hot); background: var(--hot-soft); border-radius: 8px; padding: 4px 10px;
@@ -663,6 +670,7 @@
     <div class="field"><label for="pr-posted">Posted on (portal listing date)</label><input id="pr-posted" type="date"></div>
     <div class="field"><label for="pr-remark">Remark (current position)</label><input id="pr-remark" list="remark-options" placeholder="e.g. Rented out but available for sale"></div>
     <div class="field"><label for="pr-link">Photos / listing link</label><input id="pr-link" type="url" placeholder="https://…"></div>
+    <div class="field"><label for="pr-map">Google Maps location link</label><input id="pr-map" type="url" placeholder="https://maps.app.goo.gl/…"></div>
     <div class="field"><label for="pr-notes">Write-up / remarks</label><textarea id="pr-notes" rows="3" placeholder="Sea view, 2 covered parkings, pets allowed, keys with watchman…"></textarea></div>
     <div class="modal-actions">
       <button class="btn btn-danger" id="prop-delete" hidden>Delete</button>
@@ -1281,19 +1289,24 @@
     const np = normPhone(p.ownerPhone || "");
     const detail = [[p.config, p.ptype].filter(Boolean).join(" "),
       [p.location, p.zone].filter(Boolean).join(", "),
-      p.size ? p.size + " sq ft" : "", p.floor ? "Floor: " + p.floor : "",
-      p.facing ? p.facing + " facing" : "",
-      p.furnishing].filter(Boolean).join(" · ");
+      p.size ? p.size + " sq ft" : "", p.furnishing].filter(Boolean).join(" · ");
+    const ub = (label, val) => `<span class="ub">${label}: <b>${esc(val)}</b></span>`;
+    const unitBox = [p.unit ? ub("Flat", p.unit) : "", p.block ? ub("Block", p.block) : "",
+      p.floor ? ub("Floor", p.floor) : "", p.facing ? ub("Facing", p.facing) : ""].join("");
     const price = budgetStr({ category: p.listingFor, budget: p.price });
     c.innerHTML = `
       <div class="top"><span class="name" role="button" tabindex="0">${esc(p.name) || "(no name)"}${p.block ? " · " + esc(p.block) : ""}${p.unit ? " · " + esc(p.unit) : ""}</span>
         <span class="tag ${p.listingFor === "R" ? "r" : "s"}">${p.listingFor === "R" ? "Rent" : "Sale"}</span>
         <span class="tag ${PSTATUS_TAG[p.status] || "na"}">${p.status}</span></div>
       <div class="req">${detail ? esc(detail) : "<span style='color:var(--muted)'>No details yet — tap the name to fill them in.</span>"}${price ? " · <b>" + price + "</b>" : ""}</div>
+      ${unitBox ? `<div class="unit-box">${unitBox}</div>` : ""}
       ${p.remark ? `<div class="prop-remark">📝 ${esc(p.remark)}</div>` : ""}
       ${p.postedOn || p.availableFrom ? `<div class="metad">${[p.postedOn ? "Posted " + fmtD(p.postedOn) : "", p.availableFrom ? "Available from " + fmtD(p.availableFrom) : ""].filter(Boolean).join(" · ")}</div>` : ""}
       ${p.notes ? `<div class="metad">${esc(p.notes)}</div>` : ""}
-      ${p.link ? `<div class="metad"><a href="${esc(p.link)}" target="_blank" rel="noopener">Photos / listing ↗</a></div>` : ""}
+      ${p.link || p.mapLink ? `<div class="metad">${[
+        p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">Photos / listing ↗</a>` : "",
+        p.mapLink ? `<a href="${esc(p.mapLink)}" target="_blank" rel="noopener">📍 Location on map ↗</a>` : "",
+      ].filter(Boolean).join(" &nbsp;·&nbsp; ")}</div>` : ""}
       <div class="prop-owner">
         ${p.ownerName || p.ownerPhone ? `<span>Owner: <b>${esc(p.ownerName || "—")}</b>${p.ownerPhone ? " · " + esc(p.ownerPhone) : ""}</span>` : ""}
         ${np ? `<a class="obtn w" target="_blank" rel="noopener" href="https://wa.me/91${np}?text=${encodeURIComponent(ownerWaMsg({ name: p.ownerName, config: p.config, project: p.name, location: p.location, listingFor: p.listingFor }))}">${svgWA} WhatsApp</a>
@@ -1404,6 +1417,7 @@
     $("pr-posted").value = p?.postedOn || "";
     $("pr-remark").value = p?.remark || "";
     $("pr-link").value = p?.link || "";
+    $("pr-map").value = p?.mapLink || "";
     $("pr-notes").value = p?.notes || "";
     $("prop-delete").hidden = !p;
     $("prop-backdrop").hidden = false;
@@ -1424,7 +1438,7 @@
       size: $("pr-size").value.trim(), furnishing: $("pr-furnish").value,
       floor: $("pr-floor").value.trim(), ownerName: $("pr-owner").value.trim(),
       ownerPhone: $("pr-ophone").value.trim(), status: $("pr-status").value,
-      availableFrom: $("pr-avail").value || "", postedOn: $("pr-posted").value || "", remark: $("pr-remark").value.trim(), link: $("pr-link").value.trim(),
+      availableFrom: $("pr-avail").value || "", postedOn: $("pr-posted").value || "", remark: $("pr-remark").value.trim(), link: $("pr-link").value.trim(), mapLink: $("pr-map").value.trim(),
       notes: $("pr-notes").value.trim(), updatedAt: Date.now(),
     };
     if (editingPropId) {
