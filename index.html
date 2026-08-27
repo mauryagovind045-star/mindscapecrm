@@ -626,9 +626,14 @@
     <h2 id="prop-title">New property</h2>
     <div class="field"><label for="pr-name">Project / building name</label><input id="pr-name" required placeholder="e.g. Models Exotica"></div>
     <div class="field-row">
-      <div class="field"><label for="pr-unit">Unit / villa no</label><input id="pr-unit" placeholder="A-302"></div>
+      <div class="field"><label for="pr-unit">Flat / villa no</label><input id="pr-unit" placeholder="A-302"></div>
+      <div class="field"><label for="pr-block">Block / tower / wing</label><input id="pr-block" placeholder="Tower B"></div>
+    </div>
+    <div class="field-row">
       <div class="field"><label for="pr-for">Listing for</label>
         <select id="pr-for"><option value="R">Rent</option><option value="S">Sale</option></select></div>
+      <div class="field"><label for="pr-facing">Facing</label>
+        <select id="pr-facing"><option value="">—</option><option>North</option><option>South</option><option>East</option><option>West</option><option>North-East</option><option>North-West</option><option>South-East</option><option>South-West</option></select></div>
     </div>
     <div class="field-row">
       <div class="field"><label for="pr-ptype">Property type</label><input id="pr-ptype" list="ptype-options"></div>
@@ -1204,7 +1209,7 @@
       if (state.pstat && p.status !== state.pstat) return false;
       if (state.pbhk && (p.config || "").trim() !== state.pbhk) return false;
       if (state.pfurn && (p.furnishing || "") !== state.pfurn) return false;
-      if (q && !([p.name, p.unit, p.location, p.zone, p.ownerName, p.ownerPhone, p.config, p.ptype, p.notes]
+      if (q && !([p.name, p.unit, p.block, p.facing, p.location, p.zone, p.ownerName, p.ownerPhone, p.config, p.ptype, p.notes, p.remark]
         .map((v) => v || "").join(" ").toLowerCase().includes(q))) return false;
       return true;
     });
@@ -1277,10 +1282,11 @@
     const detail = [[p.config, p.ptype].filter(Boolean).join(" "),
       [p.location, p.zone].filter(Boolean).join(", "),
       p.size ? p.size + " sq ft" : "", p.floor ? "Floor: " + p.floor : "",
+      p.facing ? p.facing + " facing" : "",
       p.furnishing].filter(Boolean).join(" · ");
     const price = budgetStr({ category: p.listingFor, budget: p.price });
     c.innerHTML = `
-      <div class="top"><span class="name" role="button" tabindex="0">${esc(p.name) || "(no name)"}${p.unit ? " · " + esc(p.unit) : ""}</span>
+      <div class="top"><span class="name" role="button" tabindex="0">${esc(p.name) || "(no name)"}${p.block ? " · " + esc(p.block) : ""}${p.unit ? " · " + esc(p.unit) : ""}</span>
         <span class="tag ${p.listingFor === "R" ? "r" : "s"}">${p.listingFor === "R" ? "Rent" : "Sale"}</span>
         <span class="tag ${PSTATUS_TAG[p.status] || "na"}">${p.status}</span></div>
       <div class="req">${detail ? esc(detail) : "<span style='color:var(--muted)'>No details yet — tap the name to fill them in.</span>"}${price ? " · <b>" + price + "</b>" : ""}</div>
@@ -1332,6 +1338,7 @@
     if (p.size) specs.push("📐 Area: " + p.size + " sq.ft");
     if (p.config) specs.push("🛏️ Configuration: " + p.config);
     if (p.floor) specs.push("🏢 Floor: " + p.floor);
+    if (p.facing) specs.push("🧭 Facing: " + p.facing);
     if (p.furnishing) specs.push("🛋️ Furnishing: " + p.furnishing);
     if (price) specs.push("💰 " + (sale ? "Price: " : "Rent: ") + price + (neg ? " (Negotiable)" : ""));
     const dep = (p.notes || "").match(/deposit\s*(₹\s*[\d.,]+\s*(?:l|lac|lakhs?|cr|k)?\b\.?)/i);
@@ -1377,6 +1384,8 @@
     $("prop-title").textContent = p ? p.name : "New property";
     $("pr-name").value = p?.name || "";
     $("pr-unit").value = p?.unit || "";
+    $("pr-block").value = p?.block || "";
+    $("pr-facing").value = p?.facing || "";
     $("pr-for").value = p?.listingFor || "R";
     $("pr-ptype").value = p?.ptype || "";
     $("pr-config").value = p?.config || "";
@@ -1407,7 +1416,8 @@
     const name = $("pr-name").value.trim();
     if (!name) { $("pr-name").focus(); return; }
     const data = {
-      name, unit: $("pr-unit").value.trim(), listingFor: $("pr-for").value,
+      name, unit: $("pr-unit").value.trim(), block: $("pr-block").value.trim(),
+      facing: $("pr-facing").value, listingFor: $("pr-for").value,
       ptype: $("pr-ptype").value.trim(), config: $("pr-config").value.trim(),
       location: $("pr-location").value.trim(), zone: $("pr-zone").value.trim(),
       price: $("pr-price").value ? Number($("pr-price").value) : 0,
