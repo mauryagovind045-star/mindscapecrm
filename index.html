@@ -353,6 +353,13 @@
     padding: 3px 10px; font-size: 12px; color: var(--ink-soft);
   }
   .unit-box .ub b { color: var(--iris-deep); font-weight: 700; }
+  .unit-box .ub-edit { cursor: pointer; background: var(--surface); color: var(--iris-deep); border: 1px dashed var(--line-strong); font-weight: 600; }
+  .unit-box .ub-edit:hover { background: var(--iris-soft); }
+  .unit-edit { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .unit-edit input, .unit-edit select {
+    padding: 6px 8px; font-size: 12.5px; border: 1px solid var(--line-strong);
+    border-radius: 8px; background: var(--surface); width: 118px;
+  }
 
   .prop-remark {
     margin-top: 8px; display: inline-block; font-size: 12.5px; font-weight: 600;
@@ -745,6 +752,7 @@
   const OWNER_TOMB_KEY = "mindscape-owner-tombs-v1";
   const OUTREACH_KEY = "mindscape-outreach-v1";
   const PSTATUSES = ["Available", "On Hold", "Rented Out", "Sold", "Not Available"];
+  const FACINGS = ["North", "South", "East", "West", "North-East", "North-West", "South-East", "South-West"];
   const PSTATUS_TAG = { "Available": "av", "On Hold": "oh", "Rented Out": "ro", "Sold": "so", "Not Available": "na" };
 
   const $ = (id) => document.getElementById(id);
@@ -1299,7 +1307,14 @@
         <span class="tag ${p.listingFor === "R" ? "r" : "s"}">${p.listingFor === "R" ? "Rent" : "Sale"}</span>
         <span class="tag ${PSTATUS_TAG[p.status] || "na"}">${p.status}</span></div>
       <div class="req">${detail ? esc(detail) : "<span style='color:var(--muted)'>No details yet — tap the name to fill them in.</span>"}${price ? " · <b>" + price + "</b>" : ""}</div>
-      ${unitBox ? `<div class="unit-box">${unitBox}</div>` : ""}
+      <div class="unit-box">${unitBox}<button class="ub ub-edit" data-ubedit title="Edit flat / block / floor / facing">${unitBox ? "✎" : "+ Flat / floor / facing"}</button></div>
+      <div class="unit-edit" data-ubform hidden>
+        <input data-uf="unit" placeholder="Flat / villa no" value="${esc(p.unit || "")}" aria-label="Flat number">
+        <input data-uf="block" placeholder="Block / tower" value="${esc(p.block || "")}" aria-label="Block">
+        <input data-uf="floor" placeholder="Floor — 3rd of 4" value="${esc(p.floor || "")}" aria-label="Floor">
+        <select data-uf="facing" aria-label="Facing"><option value="">Facing —</option>${FACINGS.map((f) => `<option${p.facing === f ? " selected" : ""}>${f}</option>`).join("")}</select>
+        <button class="cal-btn" data-ubdone>Done</button>
+      </div>
       ${p.remark ? `<div class="prop-remark">📝 ${esc(p.remark)}</div>` : ""}
       ${p.postedOn || p.availableFrom ? `<div class="metad">${[p.postedOn ? "Posted " + fmtD(p.postedOn) : "", p.availableFrom ? "Available from " + fmtD(p.availableFrom) : ""].filter(Boolean).join(" · ")}</div>` : ""}
       ${p.notes ? `<div class="metad">${esc(p.notes)}</div>` : ""}
@@ -1317,6 +1332,16 @@
       <div class="prop-remark-row">
         <input data-rm list="remark-options" placeholder="Add a remark — e.g. Rented out but available for sale" value="${esc(p.remark || "")}" aria-label="Property remark">
       </div>`;
+    c.querySelector("[data-ubedit]").addEventListener("click", () => {
+      const f = c.querySelector("[data-ubform]");
+      f.hidden = !f.hidden;
+      if (!f.hidden) f.querySelector("[data-uf]").focus();
+    });
+    c.querySelectorAll("[data-uf]").forEach((el) => el.addEventListener("change", () => {
+      p[el.dataset.uf] = el.value.trim();
+      p.updatedAt = Date.now(); save();
+    }));
+    c.querySelector("[data-ubdone]").addEventListener("click", () => { c.replaceWith(propCardEl(p)); });
     c.querySelector("[data-rm]").addEventListener("change", (e) => {
       p.remark = e.target.value.trim(); p.updatedAt = Date.now();
       save(); c.replaceWith(propCardEl(p));
