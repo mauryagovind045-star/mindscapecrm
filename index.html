@@ -365,6 +365,23 @@
     margin-top: 8px; display: inline-block; font-size: 12.5px; font-weight: 600;
     color: var(--hot); background: var(--hot-soft); border-radius: 8px; padding: 4px 10px;
   }
+
+  .photo-strip { display: flex; gap: 6px; overflow-x: auto; margin-top: 9px; -webkit-overflow-scrolling: touch; }
+  .photo-strip img {
+    width: 74px; height: 74px; object-fit: cover; border-radius: 8px;
+    border: 1px solid var(--line); cursor: pointer; flex-shrink: 0;
+  }
+  .photo-view {
+    position: fixed; inset: 0; background: rgba(12, 9, 24, 0.93); z-index: 90;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .photo-view img { max-width: 95vw; max-height: 80vh; border-radius: 8px; }
+  .photo-view .pv-close { position: absolute; top: 14px; right: 14px; color: #fff; font-size: 24px; padding: 8px 12px; }
+  .photo-view .pv-del {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    color: #fff; border: 1px solid rgba(255,255,255,0.45); border-radius: 999px;
+    padding: 8px 18px; font-weight: 600; font-size: 13px;
+  }
   .prop-remark-row { margin-top: 9px; }
   .prop-remark-row input {
     width: 100%; padding: 7px 9px; font-size: 13px;
@@ -713,6 +730,12 @@
       <button class="btn btn-primary" id="owner-save">Save owner</button>
     </div>
   </div>
+</div>
+
+<div class="photo-view" id="photo-view" hidden>
+  <button class="pv-close" id="pv-close" aria-label="Close photo">✕</button>
+  <img id="pv-img" alt="Property photo">
+  <button class="pv-del" id="pv-del">🗑 Delete this photo</button>
 </div>
 
 <div class="toast" id="toast" role="status"></div>
@@ -1316,6 +1339,7 @@
         <button class="cal-btn" data-ubdone>Done</button>
       </div>
       ${p.remark ? `<div class="prop-remark">📝 ${esc(p.remark)}</div>` : ""}
+      ${p.photos?.length ? '<div class="photo-strip" data-photostrip></div>' : ""}
       ${p.postedOn || p.availableFrom ? `<div class="metad">${[p.postedOn ? "Posted " + fmtD(p.postedOn) : "", p.availableFrom ? "Available from " + fmtD(p.availableFrom) : ""].filter(Boolean).join(" · ")}</div>` : ""}
       ${p.notes ? `<div class="metad">${esc(p.notes)}</div>` : ""}
       ${p.link || p.mapLink ? `<div class="metad">${[
@@ -1327,11 +1351,20 @@
         ${np ? `<a class="obtn w" target="_blank" rel="noopener" href="https://wa.me/91${np}?text=${encodeURIComponent(ownerWaMsg({ name: p.ownerName, config: p.config, project: p.name, location: p.location, listingFor: p.listingFor }))}">${svgWA} WhatsApp</a>
         <a class="obtn" href="tel:${esc(p.ownerPhone || "")}">${svgCall} Call</a>` : ""}
         <button class="obtn" data-copywr title="Copy a client-ready write-up (no owner details)">📋 Write-up</button>
+        <label class="obtn" title="Add property photos">📷 Add<input type="file" accept="image/*" multiple hidden data-addphoto></label>
+        ${p.photos?.length ? `<button class="obtn" data-sharephotos title="Share photos + write-up">📤 Share ${p.photos.length}</button>` : ""}
         <select data-ps aria-label="Property status" style="margin-left:auto">${PSTATUSES.map((s) => `<option${p.status === s ? " selected" : ""}>${s}</option>`).join("")}</select>
       </div>
       <div class="prop-remark-row">
         <input data-rm list="remark-options" placeholder="Add a remark — e.g. Rented out but available for sale" value="${esc(p.remark || "")}" aria-label="Property remark">
       </div>`;
+    const strip = c.querySelector("[data-photostrip]");
+    if (strip) renderPhotoStrip(p, strip);
+    c.querySelector("[data-addphoto]").addEventListener("change", (e) => {
+      if (e.target.files.length) addPhotos(p, e.target.files, c);
+      e.target.value = "";
+    });
+    c.querySelector("[data-sharephotos]")?.addEventListener("click", () => sharePhotos(p));
     c.querySelector("[data-ubedit]").addEventListener("click", () => {
       const f = c.querySelector("[data-ubform]");
       f.hidden = !f.hidden;
@@ -1414,6 +1447,173 @@
     ta.value = t; document.body.appendChild(ta); ta.select();
     document.execCommand("copy"); ta.remove();
     return Promise.resolve();
+  }
+
+  /* ---------- Property photos ---------- */
+  // blobs live in IndexedDB on each device and sync as photos/<id>.jpg in the data repo
+
+  const PHOTO_MAX = 15;
+  let photoDBP = null;
+  function photoDB() {
+    if (!photoDBP) photoDBP = new Promise((res, rej) => {
+      const r = indexedDB.open("mindscape-photos", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("blobs");
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return photoDBP;
+  }
+  async function photoPut(id, blob) {
+    const db = await photoDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction("blobs", "readwrite");
+      tx.objectStore("blobs").put(blob, id);
+      tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+    });
+  }
+  async function photoGetLocal(id) {
+    const db = await photoDB();
+    return new Promise((res) => {
+      const rq = db.transaction("blobs").objectStore("blobs").get(id);
+      rq.onsuccess = () => res(rq.result || null); rq.onerror = () => res(null);
+    });
+  }
+  async function photoDelLocal(id) {
+    const db = await photoDB();
+    return new Promise((res) => {
+      const tx = db.transaction("blobs", "readwrite");
+      tx.objectStore("blobs").delete(id);
+      tx.oncomplete = res; tx.onerror = res;
+    });
+  }
+
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+        const cv = document.createElement("canvas");
+        cv.width = Math.round(img.width * scale); cv.height = Math.round(img.height * scale);
+        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(img.src);
+        cv.toBlob((b) => (b ? resolve(b) : reject(new Error("compress failed"))), "image/jpeg", 0.82);
+      };
+      img.onerror = () => { URL.revokeObjectURL(img.src); reject(new Error("bad image")); };
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  function blobToB64(blob) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result).split(",")[1]);
+      r.onerror = () => rej(r.error);
+      r.readAsDataURL(blob);
+    });
+  }
+
+  function photoAPI(id) { return `https://api.github.com/repos/${syncCfg.repo}/contents/photos/${id}.jpg`; }
+  function photoHeaders() { return { "Authorization": "Bearer " + syncCfg.token, "Accept": "application/vnd.github+json" }; }
+
+  async function uploadPhoto(entry, blob) {
+    if (!syncCfg?.repo || !syncCfg?.token) return;
+    try {
+      const body = { message: "Add property photo", content: await blobToB64(blob) };
+      const head = await fetch(photoAPI(entry.id), { headers: photoHeaders(), cache: "no-store" });
+      if (head.status === 200) body.sha = (await head.json()).sha;
+      const res = await fetch(photoAPI(entry.id), { method: "PUT", headers: photoHeaders(), body: JSON.stringify(body) });
+      if (res.ok) { entry.up = 1; save(); }
+    } catch { /* retried on next app load */ }
+  }
+
+  async function deletePhotoRemote(id) {
+    if (!syncCfg?.repo || !syncCfg?.token) return;
+    try {
+      const head = await fetch(photoAPI(id), { headers: photoHeaders(), cache: "no-store" });
+      if (head.status !== 200) return;
+      const sha = (await head.json()).sha;
+      await fetch(photoAPI(id), { method: "DELETE", headers: photoHeaders(), body: JSON.stringify({ message: "Delete property photo", sha }) });
+    } catch { /* orphan blob is harmless */ }
+  }
+
+  async function getPhotoBlob(entry) {
+    const local = await photoGetLocal(entry.id);
+    if (local) return local;
+    if (!entry.up || !syncCfg?.repo || !syncCfg?.token) return null;
+    try {
+      const res = await fetch(photoAPI(entry.id), {
+        headers: { "Authorization": "Bearer " + syncCfg.token, "Accept": "application/vnd.github.raw+json" }, cache: "no-store" });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      await photoPut(entry.id, blob);
+      return blob;
+    } catch { return null; }
+  }
+
+  function renderPhotoStrip(p, host) {
+    host.innerHTML = "";
+    for (const entry of p.photos || []) {
+      const im = document.createElement("img");
+      im.alt = "Property photo"; im.loading = "lazy";
+      getPhotoBlob(entry).then((b) => { if (b) im.src = URL.createObjectURL(b); else im.style.opacity = 0.25; });
+      im.addEventListener("click", () => openPhotoView(p, entry));
+      host.appendChild(im);
+    }
+  }
+
+  async function addPhotos(p, files, card) {
+    const room = PHOTO_MAX - (p.photos?.length || 0);
+    const list = [...files].slice(0, room);
+    if (!list.length) { toast(`Limit is ${PHOTO_MAX} photos per property`); return; }
+    toast("Adding photo" + (list.length > 1 ? "s" : "") + "…");
+    p.photos = p.photos || [];
+    for (const f of list) {
+      try {
+        const blob = await compressImage(f);
+        const entry = { id: uid(), ts: Date.now() };
+        await photoPut(entry.id, blob);
+        p.photos.push(entry);
+        uploadPhoto(entry, blob);
+      } catch { toast("Couldn't read one of the images"); }
+    }
+    p.updatedAt = Date.now(); save();
+    card.replaceWith(propCardEl(p));
+  }
+
+  async function sharePhotos(p) {
+    const files = [];
+    for (const entry of p.photos || []) {
+      const b = await getPhotoBlob(entry);
+      if (b) files.push(new File([b], (p.name || "property").replace(/[^\w]+/g, "-").toLowerCase() + "-" + (files.length + 1) + ".jpg", { type: "image/jpeg" }));
+    }
+    if (!files.length) { toast("Photos are still downloading — try again in a moment"); return; }
+    const withText = { files, text: propWriteup(p) };
+    try {
+      if (navigator.canShare && navigator.canShare(withText)) await navigator.share(withText);
+      else if (navigator.canShare && navigator.canShare({ files })) await navigator.share({ files });
+      else toast("Photo sharing works from your phone — open the CRM there and tap Share");
+    } catch { /* user cancelled the share sheet */ }
+  }
+
+  let pvCtx = null;
+  function openPhotoView(p, entry) {
+    pvCtx = { p, entry };
+    $("pv-img").removeAttribute("src");
+    getPhotoBlob(entry).then((b) => { if (b && pvCtx?.entry === entry) $("pv-img").src = URL.createObjectURL(b); });
+    $("photo-view").hidden = false;
+  }
+  function closePhotoView() { $("photo-view").hidden = true; pvCtx = null; }
+
+  // finish uploads that were interrupted (e.g. app closed mid-upload)
+  async function retryPhotoUploads() {
+    if (!syncCfg) return;
+    for (const p of props) {
+      for (const entry of p.photos || []) {
+        if (entry.up) continue;
+        const blob = await photoGetLocal(entry.id);
+        if (blob) await uploadPhoto(entry, blob);
+      }
+    }
   }
 
   function openPropModal(id) {
@@ -2306,6 +2506,18 @@
   $("import-old-track").addEventListener("click", () => $("file-track").click());
   $("file-track").addEventListener("change", (e) => { if (e.target.files[0]) importOldTracking(e.target.files[0]); e.target.value = ""; });
 
+  $("pv-close").addEventListener("click", closePhotoView);
+  $("photo-view").addEventListener("click", (e) => { if (e.target === $("photo-view")) closePhotoView(); });
+  $("pv-del").addEventListener("click", () => {
+    if (!pvCtx) return;
+    const { p, entry } = pvCtx;
+    if (!confirm("Delete this photo? This can't be undone.")) return;
+    p.photos = (p.photos || []).filter((x) => x.id !== entry.id);
+    p.updatedAt = Date.now(); save();
+    photoDelLocal(entry.id); deletePhotoRemote(entry.id);
+    closePhotoView(); render(); toast("Photo deleted");
+  });
+
   $("sync-btn").addEventListener("click", openSyncModal);
   $("sync-cancel").addEventListener("click", closeSyncModal);
   $("sync-backdrop").addEventListener("click", (e) => { if (e.target === $("sync-backdrop")) closeSyncModal(); });
@@ -2330,7 +2542,8 @@
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      if (!$("sync-backdrop").hidden) closeSyncModal();
+      if (!$("photo-view").hidden) closePhotoView();
+      else if (!$("sync-backdrop").hidden) closeSyncModal();
       else if (!$("owner-backdrop").hidden) closeOwnerModal();
       else if (!$("prop-backdrop").hidden) closePropModal();
       else closePanel();
@@ -2348,7 +2561,7 @@
 
   fillFilters();
   render();
-  if (syncCfg) syncNow();
+  if (syncCfg) syncNow().then(() => retryPhotoUploads());
 
   if ("serviceWorker" in navigator && location.protocol === "https:") {
     navigator.serviceWorker.register("sw.js");
