@@ -1339,6 +1339,7 @@
         <button class="cal-btn" data-ubdone>Done</button>
       </div>
       ${p.remark ? `<div class="prop-remark">📝 ${esc(p.remark)}</div>` : ""}
+      ${p.visits?.length ? `<div class="metad">👣 <b>${p.visits.length}</b> site visit${p.visits.length > 1 ? "s" : ""} done · last on ${fmtD(p.visits[p.visits.length - 1])} <button class="obtn" data-unvisit title="Remove the last logged visit" style="margin-left:6px">↺ undo</button></div>` : ""}
       ${p.photos?.length ? '<div class="photo-strip" data-photostrip></div>' : ""}
       ${p.postedOn || p.availableFrom ? `<div class="metad">${[p.postedOn ? "Posted " + fmtD(p.postedOn) : "", p.availableFrom ? "Available from " + fmtD(p.availableFrom) : ""].filter(Boolean).join(" · ")}</div>` : ""}
       ${p.notes ? `<div class="metad">${esc(p.notes)}</div>` : ""}
@@ -1352,6 +1353,7 @@
         <a class="obtn" href="tel:${esc(p.ownerPhone || "")}">${svgCall} Call</a>` : ""}
         <button class="obtn" data-copywr title="Copy a client-ready write-up (no owner details)">📋 Write-up</button>
         <label class="obtn" title="Add property photos">📷 Add<input type="file" accept="image/*" multiple hidden data-addphoto></label>
+        <button class="obtn" data-visit title="Log a site visit done today">👣 +1 Visit</button>
         ${p.photos?.length ? `<button class="obtn" data-sharephotos title="Share photos + write-up">📤 Share ${p.photos.length}</button>` : ""}
         <select data-ps aria-label="Property status" style="margin-left:auto">${PSTATUSES.map((s) => `<option${p.status === s ? " selected" : ""}>${s}</option>`).join("")}</select>
       </div>
@@ -1365,6 +1367,19 @@
       e.target.value = "";
     });
     c.querySelector("[data-sharephotos]")?.addEventListener("click", () => sharePhotos(p));
+    c.querySelector("[data-visit]").addEventListener("click", () => {
+      p.visits = p.visits || [];
+      p.visits.push(todayStr());
+      p.updatedAt = Date.now(); save();
+      c.replaceWith(propCardEl(p));
+      toast(`Site visit logged — ${p.visits.length} total on ${p.name}`);
+    });
+    c.querySelector("[data-unvisit]")?.addEventListener("click", () => {
+      p.visits.pop();
+      p.updatedAt = Date.now(); save();
+      c.replaceWith(propCardEl(p));
+      toast("Last visit removed");
+    });
     c.querySelector("[data-ubedit]").addEventListener("click", () => {
       const f = c.querySelector("[data-ubform]");
       f.hidden = !f.hidden;
