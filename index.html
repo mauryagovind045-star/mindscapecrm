@@ -549,6 +549,7 @@
       <button class="tab" data-v="all" aria-selected="false">All Leads</button>
       <button class="tab" data-v="props" aria-selected="false">Properties <span class="b" id="c-props">0</span></button>
       <button class="tab" data-v="owners" aria-selected="false">Owners <span class="b" id="c-owners">0</span></button>
+      <button class="tab" data-v="news" aria-selected="false">📰 Paper Leads <span class="b" id="c-news">0</span></button>
     </div>
     <div class="filters" id="filters" hidden>
       <input type="search" id="q" placeholder="Search name, phone, area…" autocomplete="off" aria-label="Search leads">
@@ -704,6 +705,34 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="news-backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Newspaper lead">
+    <h2 id="news-title">New paper lead</h2>
+    <div class="field-row">
+      <div class="field"><label for="nl-date">Paper date</label><input id="nl-date" type="date"></div>
+      <div class="field"><label for="nl-paper">Newspaper</label><input id="nl-paper" list="paper-options" placeholder="Herald">
+        <datalist id="paper-options"><option value="Herald"><option value="Navhind Times"><option value="Times of India (Goa)"><option value="Gomantak Times"><option value="Lokmat"><option value="Tarun Bharat"></datalist></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="nl-type">Ad type</label>
+        <select id="nl-type"><option value="R">For Rent</option><option value="S">For Sale</option><option value="W">Wanted / Buyer</option></select></div>
+      <div class="field"><label for="nl-phone">Phone</label><input id="nl-phone" placeholder="98xxxxxxxx"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="nl-name">Name (if given)</label><input id="nl-name"></div>
+      <div class="field"><label for="nl-config">Config</label><input id="nl-config" placeholder="2 BHK" list="config-options"></div>
+    </div>
+    <div class="field"><label for="nl-location">Location / area</label><input id="nl-location" list="loc-options"></div>
+    <div class="field"><label for="nl-text">Ad text (as printed)</label><textarea id="nl-text" rows="3" placeholder="2BHK furnished flat Porvorim 25k, owner…"></textarea></div>
+    <div class="field"><label for="nl-notes">Notes / follow-up</label><textarea id="nl-notes" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="news-delete" hidden>Delete</button>
+      <button class="btn" id="news-cancel">Cancel</button>
+      <button class="btn btn-primary" id="news-save">Save lead</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="owner-backdrop" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-label="Owner details">
     <h2 id="owner-title">New owner</h2>
@@ -773,6 +802,9 @@
   const PROP_TOMB_KEY = "mindscape-prop-tombs-v1";
   const OWNERS_KEY = "mindscape-owners-v1";
   const OWNER_TOMB_KEY = "mindscape-owner-tombs-v1";
+  const NEWS_KEY = "mindscape-news-v1";
+  const NEWS_TOMB_KEY = "mindscape-news-tombs-v1";
+  const NSTATUSES = ["New", "Called", "Interested", "Not Interested", "Converted", "Junk"];
   const OUTREACH_KEY = "mindscape-outreach-v1";
   const PSTATUSES = ["Available", "On Hold", "Rented Out", "Sold", "Not Available"];
   const FACINGS = ["North", "South", "East", "West", "North-East", "North-West", "South-East", "South-West"];
@@ -791,13 +823,16 @@
   let propTombs = loadJSON(PROP_TOMB_KEY, {});
   let owners = loadJSON(OWNERS_KEY, []);
   let ownerTombs = loadJSON(OWNER_TOMB_KEY, {});
+  let newsLeads = loadJSON(NEWS_KEY, []);
+  let newsTombs = loadJSON(NEWS_TOMB_KEY, {});
   let outreach = loadJSON(OUTREACH_KEY, {});   // "YYYY-MM-DD" -> [lead ids reached that day]
   let syncCfg = loadJSON(SYNC_KEY, null);
   let editingId = null;
   let editingPropId = null;
   let editingOwnerId = null;
+  let editingNewsId = null;
 
-  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", broker: "", shown: 30, dashMonth: "", pq: "", pcat: "", pstat: "", pbhk: "", pfurn: "", oq: "", ocat: "" };
+  const state = { view: "dash", q: "", cat: "", kind: "", zone: "", month: "", status: "", broker: "", shown: 30, dashMonth: "", pq: "", pcat: "", pstat: "", pbhk: "", pfurn: "", oq: "", ocat: "", nq: "", nstat: "" };
 
   // commercial = commercial/industrial ptypes, incl. free-text ones from imported sheets
   const isCommercial = (L) => /commercial|shop|showroom|office|warehouse|godown|industrial|retail/i.test(L.ptype || "");
@@ -809,6 +844,8 @@
     localStorage.setItem(PROP_TOMB_KEY, JSON.stringify(propTombs));
     localStorage.setItem(OWNERS_KEY, JSON.stringify(owners));
     localStorage.setItem(OWNER_TOMB_KEY, JSON.stringify(ownerTombs));
+    localStorage.setItem(NEWS_KEY, JSON.stringify(newsLeads));
+    localStorage.setItem(NEWS_TOMB_KEY, JSON.stringify(newsTombs));
     localStorage.setItem(OUTREACH_KEY, JSON.stringify(outreach));
   }
 
@@ -958,16 +995,20 @@
     $("c-sched").textContent = sched + due;
     $("c-props").textContent = props.filter((p) => p.status === "Available").length;
     $("c-owners").textContent = owners.length;
+    const nPending = newsLeads.filter((n) => n.status === "New" || n.status === "Called" || n.status === "Interested").length;
+    $("c-news").textContent = nPending;
+    $("c-news").classList.toggle("alert", newsLeads.some((n) => n.status === "New") && state.view !== "news");
     return { due, tc, sched };
   }
 
   function render() {
     const c = counts();
-    $("filters").hidden = state.view === "dash" || state.view === "props" || state.view === "owners";
+    $("filters").hidden = state.view === "dash" || state.view === "props" || state.view === "owners" || state.view === "news";
     $("dash").innerHTML = ""; $("list").innerHTML = "";
     if (state.view === "dash") { renderDash(c); $("more").hidden = true; $("hint").textContent = ""; return; }
     if (state.view === "props") { renderProps(); $("more").hidden = true; $("hint").textContent = ""; return; }
     if (state.view === "owners") { renderOwners(); $("more").hidden = true; $("hint").textContent = ""; return; }
+    if (state.view === "news") { renderNews(); $("more").hidden = true; $("hint").textContent = ""; return; }
     const f = viewSorted(filtered());
     const slice = f.slice(0, state.shown);
     if (!slice.length) {
@@ -1852,6 +1893,145 @@
     toast(added ? `Added ${added} owner${added === 1 ? "" : "s"} from properties` : "All property owners are already here");
   }
 
+  /* ---------- Newspaper leads ---------- */
+
+  const NTYPE_LABEL = { R: "For Rent", S: "For Sale", W: "Wanted" };
+  const NSTAT_TAG = { "New": "fc", "Called": "sched", "Interested": "av", "Not Interested": "na", "Converted": "av", "Junk": "na" };
+
+  function newsFiltered() {
+    const q = state.nq.toLowerCase();
+    return newsLeads.filter((n) => {
+      if (state.nstat && n.status !== state.nstat) return false;
+      if (!q) return true;
+      const hay = [n.name, n.phone, n.paper, n.location, n.config, n.text, n.notes].map((v) => v || "").join(" ").toLowerCase();
+      const qd = q.replace(/\D/g, "");
+      return hay.includes(q) || (qd.length >= 4 && String(n.phone || "").replace(/\D/g, "").includes(qd));
+    }).sort((a, b) => (b.paperDate || "").localeCompare(a.paperDate || ""));
+  }
+
+  function renderNews() {
+    const d = document.createElement("div");
+    d.innerHTML = `
+      <div class="props-head">
+        <input type="search" id="nq" placeholder="Search phone, area, ad text…" value="${esc(state.nq)}" aria-label="Search paper leads">
+        <select id="nstat" aria-label="Lead status">
+          <option value="">All statuses</option>
+          ${NSTATUSES.map((s) => `<option${state.nstat === s ? " selected" : ""}>${s}</option>`).join("")}
+        </select>
+        <button class="btn btn-primary" id="add-news">+ Add paper lead</button>
+      </div>`;
+    $("dash").appendChild(d);
+    $("add-news").addEventListener("click", () => openNewsModal(null));
+    $("nq").addEventListener("input", (e) => { state.nq = e.target.value; renderNewsList(); });
+    $("nstat").addEventListener("change", (e) => { state.nstat = e.target.value; renderNewsList(); });
+    renderNewsList();
+  }
+
+  function renderNewsList() {
+    const list = $("list");
+    list.innerHTML = "";
+    const f = newsFiltered();
+    if (!f.length) {
+      list.innerHTML = '<div class="empty">' + (newsLeads.length === 0
+        ? "No newspaper leads yet. Tap + Add paper lead to log today's classifieds."
+        : "Nothing matches these filters.") + "</div>";
+      return;
+    }
+    for (const n of f) list.appendChild(newsCardEl(n));
+  }
+
+  function newsCardEl(n) {
+    const c = document.createElement("div");
+    const settled = ["Not Interested", "Converted", "Junk"].includes(n.status);
+    c.className = "card" + (settled ? " done" : "");
+    const np = normPhone(n.phone || "");
+    const detail = [[n.config, n.location].filter(Boolean).join(" in "), n.phone].filter(Boolean).join(" · ");
+    c.innerHTML = `
+      <div class="top"><span class="name" role="button" tabindex="0">${esc(n.name) || esc(n.phone) || "(no contact)"}</span>
+        <span class="tag ${n.type === "R" ? "r" : n.type === "S" ? "s" : "fc"}">${NTYPE_LABEL[n.type] || "Ad"}</span>
+        <span class="tag rep">📰 ${esc(n.paper || "Paper")}${n.paperDate ? " · " + fmtD(n.paperDate) : ""}</span>
+        <span class="tag ${NSTAT_TAG[n.status] || "na"}">${esc(n.status)}</span></div>
+      ${detail ? `<div class="req">${esc(detail)}</div>` : ""}
+      ${n.text ? `<div class="metad">"${esc(n.text)}"</div>` : ""}
+      ${n.notes ? `<div class="metad">${esc(n.notes)}</div>` : ""}
+      <div class="prop-owner">
+        ${np ? `<a class="obtn w" target="_blank" rel="noopener" href="https://wa.me/91${np}?text=${encodeURIComponent(ownerWaMsg({ name: n.name, config: n.config, location: n.location, listingFor: n.type === "W" ? "" : n.type }))}">${svgWA} WhatsApp</a>
+        <a class="obtn" href="tel:${esc(n.phone || "")}">${svgCall} Call</a>` : ""}
+        ${n.status !== "Converted" ? '<button class="obtn" data-toowner title="Save this contact into the Owners section">→ Save as owner</button>' : ""}
+        <select data-ns aria-label="Lead status" style="margin-left:auto">${NSTATUSES.map((s) => `<option${n.status === s ? " selected" : ""}>${s}</option>`).join("")}</select>
+      </div>`;
+    c.querySelector(".name").addEventListener("click", () => openNewsModal(n.id));
+    c.querySelector(".name").addEventListener("keydown", (e) => { if (e.key === "Enter") openNewsModal(n.id); });
+    c.querySelector("[data-ns]").addEventListener("change", (e) => {
+      n.status = e.target.value; n.updatedAt = Date.now();
+      save(); render();
+    });
+    c.querySelector("[data-toowner]")?.addEventListener("click", () => {
+      const dup = owners.find((o) => normPhone(o.phone) && normPhone(o.phone) === np);
+      if (dup) { toast("Already in Owners: " + (dup.name || dup.phone)); return; }
+      owners.unshift({
+        id: uid(), createdAt: Date.now(), updatedAt: Date.now(),
+        name: n.name || "", phone: n.phone || "", altPhone: "", email: "",
+        project: "", unit: "", config: n.config || "", location: n.location || "",
+        listingFor: n.type === "W" ? "" : n.type,
+        notes: `From newspaper ad (${n.paper || "paper"}${n.paperDate ? ", " + fmtD(n.paperDate) : ""}): ${n.text || ""}`.trim(),
+      });
+      n.status = "Converted"; n.updatedAt = Date.now();
+      save(); render();
+      toast("Saved to Owners" + (n.name ? ": " + n.name : ""));
+    });
+    return c;
+  }
+
+  function openNewsModal(id) {
+    editingNewsId = id;
+    const n = id ? newsLeads.find((x) => x.id === id) : null;
+    $("news-title").textContent = n ? (n.name || n.phone || "Paper lead") : "New paper lead";
+    $("nl-date").value = n?.paperDate || todayStr();
+    $("nl-paper").value = n?.paper || "";
+    $("nl-type").value = n?.type || "R";
+    $("nl-phone").value = n?.phone || "";
+    $("nl-name").value = n?.name || "";
+    $("nl-config").value = n?.config || "";
+    $("nl-location").value = n?.location || "";
+    $("nl-text").value = n?.text || "";
+    $("nl-notes").value = n?.notes || "";
+    $("news-delete").hidden = !n;
+    $("news-backdrop").hidden = false;
+    $("nl-phone").focus();
+  }
+
+  function closeNewsModal() { $("news-backdrop").hidden = true; editingNewsId = null; }
+
+  function saveNewsModal() {
+    const phone = $("nl-phone").value.trim();
+    const text = $("nl-text").value.trim();
+    if (!phone && !text) { $("nl-phone").focus(); return; }
+    const data = {
+      paperDate: $("nl-date").value || todayStr(), paper: $("nl-paper").value.trim(),
+      type: $("nl-type").value, phone, name: $("nl-name").value.trim(),
+      config: $("nl-config").value.trim(), location: $("nl-location").value.trim(),
+      text, notes: $("nl-notes").value.trim(), updatedAt: Date.now(),
+    };
+    if (editingNewsId) {
+      Object.assign(newsLeads.find((x) => x.id === editingNewsId), data);
+      toast("Paper lead updated");
+    } else {
+      newsLeads.unshift({ id: uid(), createdAt: Date.now(), status: "New", ...data });
+      toast("Paper lead added");
+    }
+    save(); render(); closeNewsModal();
+  }
+
+  function deleteNewsLead() {
+    const n = newsLeads.find((x) => x.id === editingNewsId);
+    if (!n) return;
+    if (!confirm("Delete this paper lead? This can't be undone.")) return;
+    newsTombs[editingNewsId] = Date.now();
+    newsLeads = newsLeads.filter((x) => x.id !== editingNewsId);
+    save(); render(); closeNewsModal(); toast("Paper lead deleted");
+  }
+
   /* ---------- Panel (full edit) ---------- */
 
   function openPanel(id) {
@@ -1989,6 +2169,10 @@
         if (Array.isArray(data.owners)) {
           const oExisting = new Set(owners.map((o) => o.id));
           for (const o of data.owners) if (o && o.id && o.name && !oExisting.has(o.id)) { owners.push(o); added++; }
+        }
+        if (Array.isArray(data.newsLeads)) {
+          const nExisting = new Set(newsLeads.map((n) => n.id));
+          for (const n of data.newsLeads) if (n && n.id && !nExisting.has(n.id)) { newsLeads.push(n); added++; }
         }
         save(); fillFilters(); render();
         toast(added ? `Imported ${added} item${added > 1 ? "s" : ""}` : "Nothing new to import");
@@ -2352,6 +2536,16 @@
     }
     const mergedOwners = [...oById.values()].filter((o) => !(oTombs[o.id] > leadTime(o)));
 
+    const nTombs = { ...(remote?.newsTombstones || {}) };
+    for (const [id, ts] of Object.entries(newsTombs)) nTombs[id] = Math.max(ts, nTombs[id] || 0);
+    const nById = new Map();
+    for (const n of [...(remote?.newsLeads || []), ...newsLeads]) {
+      if (!n || !n.id) continue;
+      const prev = nById.get(n.id);
+      if (!prev || leadTime(n) >= leadTime(prev)) nById.set(n.id, n);
+    }
+    const mergedNews = [...nById.values()].filter((n) => !(nTombs[n.id] > leadTime(n)));
+
     const mergedReach = {};
     for (const src of [remote?.outreach || {}, outreach]) {
       for (const [day, ids] of Object.entries(src)) {
@@ -2361,10 +2555,10 @@
       }
     }
 
-    return { leads: mergedLeads, tombstones: tombs, props: mergedProps, propTombstones: pTombs, owners: mergedOwners, ownerTombstones: oTombs, outreach: mergedReach };
+    return { leads: mergedLeads, tombstones: tombs, props: mergedProps, propTombstones: pTombs, owners: mergedOwners, ownerTombstones: oTombs, newsLeads: mergedNews, newsTombstones: nTombs, outreach: mergedReach };
   }
 
-  function serialize() { return JSON.stringify({ version: 2, leads, tombstones, props, propTombstones: propTombs, owners, ownerTombstones: ownerTombs, outreach }); }
+  function serialize() { return JSON.stringify({ version: 2, leads, tombstones, props, propTombstones: propTombs, owners, ownerTombstones: ownerTombs, newsLeads, newsTombstones: newsTombs, outreach }); }
 
   function setSyncStatus(stateName, msg) {
     $("sync-dot").className = "sync-dot" + (stateName ? " " + stateName : "");
@@ -2410,10 +2604,11 @@
       leads = merged.leads; tombstones = merged.tombstones;
       props = merged.props; propTombs = merged.propTombstones;
       owners = merged.owners; ownerTombs = merged.ownerTombstones;
+      newsLeads = merged.newsLeads; newsTombs = merged.newsTombstones;
       outreach = merged.outreach;
       persistLocal(); fillFilters(); render();
       const body = serialize();
-      const remoteBody = remote && remote.version === 2 ? JSON.stringify({ version: 2, leads: remote.leads, tombstones: remote.tombstones || {}, props: remote.props || [], propTombstones: remote.propTombstones || {}, owners: remote.owners || [], ownerTombstones: remote.ownerTombstones || {}, outreach: remote.outreach || {} }) : null;
+      const remoteBody = remote && remote.version === 2 ? JSON.stringify({ version: 2, leads: remote.leads, tombstones: remote.tombstones || {}, props: remote.props || [], propTombstones: remote.propTombstones || {}, owners: remote.owners || [], ownerTombstones: remote.ownerTombstones || {}, newsLeads: remote.newsLeads || [], newsTombstones: remote.newsTombstones || {}, outreach: remote.outreach || {} }) : null;
       if (body !== remoteBody) {
         const put = await fetch(url, {
           method: "PUT", headers,
@@ -2487,6 +2682,10 @@
   $("owner-cancel").addEventListener("click", closeOwnerModal);
   $("owner-delete").addEventListener("click", deleteOwner);
   $("owner-backdrop").addEventListener("click", (e) => { if (e.target === $("owner-backdrop")) closeOwnerModal(); });
+  $("news-save").addEventListener("click", saveNewsModal);
+  $("news-cancel").addEventListener("click", closeNewsModal);
+  $("news-delete").addEventListener("click", deleteNewsLead);
+  $("news-backdrop").addEventListener("click", (e) => { if (e.target === $("news-backdrop")) closeNewsModal(); });
   $("lead-form").addEventListener("submit", (e) => { e.preventDefault(); savePanel(); });
 
   $("note-add").addEventListener("click", () => {
@@ -2559,6 +2758,7 @@
     if (e.key === "Escape") {
       if (!$("photo-view").hidden) closePhotoView();
       else if (!$("sync-backdrop").hidden) closeSyncModal();
+      else if (!$("news-backdrop").hidden) closeNewsModal();
       else if (!$("owner-backdrop").hidden) closeOwnerModal();
       else if (!$("prop-backdrop").hidden) closePropModal();
       else closePanel();
