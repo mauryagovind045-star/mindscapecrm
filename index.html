@@ -1201,6 +1201,7 @@
       <div class="top"><span class="name" role="button" tabindex="0">${esc(L.name) || "(no name)"}</span>${badges}</div>
       <div class="req"><b>${esc((L.config ? L.config + " " : "") + (L.ptype || ""))}</b>${[L.project, L.location].filter(Boolean).length ? " in <b>" + esc([L.project, L.location].filter(Boolean).join(", ")) + "</b>" : ""}${budgetStr(L) ? " · " + budgetStr(L) : ""}${L.phone ? " · " + esc(L.phone) : ""}</div>
       <div class="metad">${L.leadDate ? "Enquired " + fmtLeadDate(L) : ""}${L.email ? " · " + esc(L.email) : ""}</div>
+      ${L.visits?.length ? `<div class="metad">👣 <b>${L.visits.length}</b> site visit${L.visits.length > 1 ? "s" : ""} done · last on ${fmtD(L.visits[L.visits.length - 1])}</div>` : ""}
       <div class="acts">
         <a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(waMsg(L))}">${svgWA} WhatsApp</a>
         <a class="btn call" href="tel:${String(L.phone || "").replace(/[^0-9+]/g, "")}">${svgCall} Call</a>
@@ -1216,6 +1217,8 @@
           <button class="qbtn" data-q="called">Called today</button>
           <button class="qbtn" data-q="texted">Texted today</button>
           <button class="qbtn" data-q="calltmrw">Call tmrw</button>
+          <button class="qbtn" data-q="visit">👣 +1 Visit</button>
+          ${L.visits?.length ? '<button class="qbtn" data-q="unvisit" title="Remove last visit">↺ visit</button>' : ""}
           <button class="qbtn" data-q="focus">${L.focus ? "★ Focus ✓" : "Focus"}</button>
           <button class="qbtn" data-q="broker">${L.broker ? "Broker ✓" : "Broker"}</button>
           <button class="qbtn" data-q="repeat">${L.repeat ? "Repeat ✓" : "Repeat"}</button>
@@ -1260,6 +1263,13 @@
       const a = b.dataset.q;
       if (a === "called") { L.lastCalled = todayStr(); if (L.status === "New" || L.status === "Texted") L.status = "Contacted"; L.attempts = (L.attempts || 0) + 1; logReach(L.id); if (L.callOn && L.callOn <= todayStr()) L.callOn = ""; }
       if (a === "calltmrw") L.callOn = addDays(1);
+      if (a === "visit") {
+        L.visits = L.visits || [];
+        L.visits.push(todayStr());
+        logReach(L.id);
+        if (["New", "Texted", "Contacted", "Follow-Up", "Site Visit Scheduled"].includes(L.status)) L.status = "Site Visit Done";
+      }
+      if (a === "unvisit") (L.visits || []).pop();
       if (a === "texted") { L.lastTexted = todayStr(); if (L.status === "New") L.status = "Texted"; logReach(L.id); }
       if (a === "broker") L.broker = !L.broker;
       if (a === "repeat") L.repeat = !L.repeat;
@@ -2139,10 +2149,10 @@
 
   function exportCSV() {
     const cols = ["id", "name", "phone", "email", "category", "config", "ptype", "project", "location", "zone",
-      "budget", "leadDate", "status", "urgency", "outcome", "lastCalled", "lastTexted", "followUp", "callOn", "attempts", "broker", "focus", "requirements"];
+      "budget", "leadDate", "status", "urgency", "outcome", "lastCalled", "lastTexted", "followUp", "callOn", "attempts", "visits", "broker", "focus", "requirements"];
     const cell = (v) => { v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
     const rows = [cols.join(",")];
-    for (const L of leads) rows.push(cols.map((c) => cell(c === "category" ? (L.category === "R" ? "Rental" : "Sale") : c === "requirements" ? (L.requirements || "").replace(/\n/g, " ") : L[c])).join(","));
+    for (const L of leads) rows.push(cols.map((c) => cell(c === "category" ? (L.category === "R" ? "Rental" : "Sale") : c === "requirements" ? (L.requirements || "").replace(/\n/g, " ") : c === "visits" ? (L.visits || []).length : L[c])).join(","));
     download(`mindscape-leads-${todayStr()}.csv`, rows.join("\n"), "text/csv");
     toast("CSV exported");
   }
